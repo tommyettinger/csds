@@ -22,8 +22,8 @@ namespace CSDS
             Keeper = keeper;
             Item = item;
             Label = label;
-            Previous = previous ?? keeper.BaseRecord;
-            Next = next ?? keeper.BaseRecord;
+            Previous = previous ?? keeper[0];
+            Next = next ?? keeper[0];
         }
     }
     /// <summary>
@@ -34,18 +34,12 @@ namespace CSDS
     public class OrderKeeper<T> : KeyedCollection<T, Record<T>>
     {
         /// <summary>
-        /// The first element placed in the ordering.
-        /// </summary>
-        public Record<T> BaseRecord;
-        
-        /// <summary>
         /// Constructs an OrderKeeper with its necessary initial element (empty OrderKeepers aren't possible).
         /// </summary>
         /// <param name="initial">The first element to place in the ordering</param>
         public OrderKeeper(T initial) : base()
         {
-            BaseRecord = new Record<T>(this, initial, 0UL);
-            Add(BaseRecord);
+            Add(new Record<T>(this, initial, 0UL));
         }
 
         protected override T GetKeyForItem(Record<T> record)
