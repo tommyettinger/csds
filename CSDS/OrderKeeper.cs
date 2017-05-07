@@ -61,7 +61,7 @@ namespace CSDS
         /// <returns>true if x and y are both present and x is earlier in the ordering than y, otherwise false</returns>
         public bool OrderOf(T x, T y)
         {
-            return Contains(x) && Contains(y) && this[x].Label < this[y].Label;
+            return Contains(x) && Contains(y) && this[x].Label - this[0].Label < this[y].Label - this[0].Label;
         }
         /// <summary>
         /// Given an existing T item to use as a starting point in the ordering and another T item to add, puts the
@@ -74,7 +74,7 @@ namespace CSDS
             if(!Contains(existing) || Contains(adding))
                 return;
             Record<T> rec = this[existing], succ = rec.Next, put;
-            ulong existingLabel = rec.Label, baseLabel = BaseRecord.Label;
+            ulong existingLabel = rec.Label, baseLabel = this[0].Label;
             if(succ.Equals(rec))
             {
                 put = new Record<T>(this, adding, (existingLabel - baseLabel) / 2 + 0x8000000000000000UL + baseLabel, rec, rec);
@@ -96,6 +96,7 @@ namespace CSDS
                 succ.Label = w * k / j + existingLabel;
                 succ = succ.Next;
             }
+            baseLabel = this[0].Label;
             w = existingLabel - baseLabel;
             put = new Record<T>(this, adding, (rec.Next.Label - baseLabel - w) / 2 + w + baseLabel, rec, rec.Next);
             rec.Next.Previous = put;
