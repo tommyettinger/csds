@@ -71,7 +71,7 @@ namespace CSDS
             ulong existingLabel = rec.Label, baseLabel = this[0].Label;
             if(succ.Equals(rec))
             {
-                put = new Record<T>(this, adding, (existingLabel - baseLabel) / 2 + 0x8000000000000000UL + baseLabel, rec, rec);
+                put = new Record<T>(this, adding, (existingLabel - baseLabel) / 2UL + 0x8000000000000000UL + baseLabel, rec, rec);
                 rec.Previous = put;
                 rec.Next = put;
                 Add(put);
@@ -92,7 +92,7 @@ namespace CSDS
             }
             baseLabel = this[0].Label;
             w = existingLabel - baseLabel;
-            put = new Record<T>(this, adding, (rec.Next.Label - baseLabel - w) / 2 + w + baseLabel, rec, rec.Next);
+            put = new Record<T>(this, adding, (rec.Next.Label - baseLabel - w) / 2UL + w + baseLabel, rec, rec.Next);
             rec.Next.Previous = put;
             rec.Next = put;
             Add(put);

@@ -1,5 +1,4 @@
 ﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CSDS;
 using System.Collections.Generic;
 namespace CSDS_Test
@@ -8,25 +7,27 @@ namespace CSDS_Test
     {
         public static void Main(string[] args)
         {
+            DateTime start = DateTime.Now;
             OrderKeeper<string> keeper = new OrderKeeper<string>("-1");
-            for(int i = 0; i < 999; ++i)
+            for(int i = 0; i < 0x100000; ++i)
             {
                 keeper.AddAfter((i - 1).ToString(), i.ToString());
             }
+            Console.WriteLine("Finished in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
             int size = keeper.Count;
             SortedSet<ulong> labels = new SortedSet<ulong>();
-            List<ulong> labelList = new List<ulong>(size);
             for(int i = 0; i < size; i++)
             {
-                if(labels.Add(keeper[i].Label))
+                if(!labels.Add(keeper[i].Label))
+                    /* // this info takes way too long to print; commented out
                     Console.WriteLine(keeper[i].Item + ": " + keeper[i].Label);
                 else
+                */
                 {
                     // shouldn't happen
                     Console.WriteLine("DUPLICATE LABEL: " + keeper[i].Label);
                     break;
                 }
-                labelList.Add(keeper[i].Label);
             }
             for(int i = 0; i < size-1; i++)
             {
