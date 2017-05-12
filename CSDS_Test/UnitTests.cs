@@ -9,32 +9,36 @@ namespace CSDS_Test
         {
             DateTime start = DateTime.Now;
             OrderKeeper<string> keeper = new OrderKeeper<string>("-1");
-            for(int i = 0; i < 0x100000; ++i)
+            for(int i = 0; i < 0x900000; ++i)
             {
                 keeper.AddAfter((i - 1).ToString(), i.ToString());
             }
             Console.WriteLine("Finished in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
             int size = keeper.Count;
             SortedSet<ulong> labels = new SortedSet<ulong>();
-            for(int i = 0; i < size; i++)
+            Record<string> current;
+            foreach(string s in keeper)
             {
-                if(!labels.Add(keeper[i].Label))
-                    /* // this info takes way too long to print; commented out
-                    Console.WriteLine(keeper[i].Item + ": " + keeper[i].Label);
-                else
-                */
+                current = keeper[s];
+                if(!labels.Add(current.Label))
+                /*    // this info takes way too long to print; commented out
+                    Console.WriteLine(s + ": " + current.Label);
+                else*/
                 {
                     // shouldn't happen
-                    Console.WriteLine("DUPLICATE LABEL: " + keeper[i].Label);
+                    Console.WriteLine("DUPLICATE LABEL FOR ITEM " + s + ": " + current.Label);
                     break;
                 }
             }
-            for(int i = 0; i < size-1; i++)
+            foreach(string s in keeper)
             {
-                if(!keeper.OrderOf(keeper[i].Item, keeper[i+1].Item))
+                current = keeper[s];
+                if(current.Next.Equals(keeper.First)) break;
+                if(!keeper.OrderOf(s, current.Next.Item))
                 {
-                    Console.WriteLine("BAD LABEL ORDER; LABEL " + i + " IS NOT BEFORE LABEL " + (i+1));
+                    Console.WriteLine("BAD LABEL ORDER; ITEM " + s + " (LABEL " + current.Label + ") IS AFTER ITEM " + (current.Next.Item) + " (LABEL " + current.Next.Label + ")");
                     break;
+
                 }
             }
             Console.WriteLine("Press any key to close (maybe twice?)");
