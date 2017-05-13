@@ -29,23 +29,28 @@ namespace CSDS.Utilities
         /// </summary>
         /// <param name="snapshot">a byte array produced by GetSnapshot() on an object with the same class as this</param>
         void FromSnapshot(byte[] snapshot);
+        /// <summary>
+        /// Returns a copy of this Randomness type with a copied state.
+        /// </summary>
+        /// <returns>a copy of this Randomness type with a copied state</returns>
+        Randomness Copy();
     }
 
     public class RNG : Random
     {
         public static Random GlobalRandom = new Random();
-        public Randomness rand;
+        public Randomness Rand { get; set; }
         /// <summary>
         /// Constructs an RNG with a SplitMixRandomness, randomly seeded, as its Randomness.
         /// </summary>
         public RNG()
         {
-            rand = new SplitMixRandomness();
+            Rand = new SplitMixRandomness();
         }
 
         public RNG(long seed)
         {
-            rand = new SplitMixRandomness(seed);
+            Rand = new SplitMixRandomness(seed);
         }
 
         /// <summary>
@@ -53,7 +58,7 @@ namespace CSDS.Utilities
         /// </summary>
         public RNG(Randomness randomSource)
         {
-            rand = randomSource;
+            Rand = randomSource;
         }
         /// <summary>
         /// Returns a pseudo-random long, which can be positive or negative and have any 64-bit value.
@@ -62,7 +67,7 @@ namespace CSDS.Utilities
 
         public long NextLong()
         {
-            return rand.Next64();
+            return Rand.Next64();
         }
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
@@ -77,7 +82,7 @@ namespace CSDS.Utilities
             long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
             for(;;)
             {
-                long bits = rand.Next64() & 0x7fffffffffffffffL;
+                long bits = Rand.Next64() & 0x7fffffffffffffffL;
                 if(bits >= threshold)
                     return bits % maxValue;
             }
@@ -100,7 +105,7 @@ namespace CSDS.Utilities
         /// <returns>any int, all 32 bits are pseudo-random</returns>
         public int NextInt()
         {
-            return rand.Next32();
+            return Rand.Next32();
         }
         /// <summary>
         /// Returns a positive pseudo-random int, which can have any 31-bit positive value.
@@ -108,7 +113,7 @@ namespace CSDS.Utilities
         /// <returns>any random positive int, all but the sign bit are pseudo-random</returns>
         public override int Next()
         {
-            return rand.Next32() & 0x7fffffff;
+            return Rand.Next32() & 0x7fffffff;
         }
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which can be positive or negative.
@@ -118,7 +123,7 @@ namespace CSDS.Utilities
         /// <returns></returns>
         public override int Next(int maxValue)
         {
-            return (int)((maxValue * (rand.Next64() & 0x7FFFFFFFL)) >> 31);
+            return (int)((maxValue * (Rand.Next64() & 0x7FFFFFFFL)) >> 31);
         }
         /// <summary>
         /// Gets a random int that is between minValue (inclusive) and maxValue (exclusive); both can be positive or negative.
@@ -143,7 +148,7 @@ namespace CSDS.Utilities
             if(buffer == null)
                 throw new ArgumentNullException("buffer");
             for(int i = 0; i < buffer.Length;)
-                for(long r = rand.Next64(), n = Math.Min(buffer.Length - i, 8); n-- > 0; r >>= 8)
+                for(long r = Rand.Next64(), n = Math.Min(buffer.Length - i, 8); n-- > 0; r >>= 8)
                     buffer[i++] = (byte)r;
         }
         /// <summary>
@@ -155,11 +160,50 @@ namespace CSDS.Utilities
         /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
         public override double NextDouble()
         {
-            return BitConverter.Int64BitsToDouble(0x3FF0000000000000L | (rand.Next64() & 0x000FFFFFFFFFFFFFL)) - 1.0;
+            return BitConverter.Int64BitsToDouble(0x3FF0000000000000L | (Rand.Next64() & 0x000FFFFFFFFFFFFFL)) - 1.0;
         }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <remarks>
+        /// The same code as NextDouble().
+        /// This uses a technique by Sebastiano Vigna, described at http://xoroshiro.di.unimi.it/#remarks
+        /// </remarks>
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
         protected override double Sample()
         {
-            return BitConverter.Int64BitsToDouble(0x3FF0000000000000L | (rand.Next64() & 0x000FFFFFFFFFFFFFL)) - 1.0;
+            return BitConverter.Int64BitsToDouble(0x3FF0000000000000L | (Rand.Next64() & 0x000FFFFFFFFFFFFFL)) - 1.0;
+        }
+        /// <summary>
+        /// Returns a new RNG using the same algorithm and a copy of the internal state this uses.
+        /// Calling the same methods on this RNG and its copy should produce the same values.
+        /// </summary>
+        /// <returns>a copy of this RNG</returns>
+        public RNG Copy()
+        {
+            return new RNG(Rand.Copy());
+        }
+        /// <summary>
+        /// Gets a snapshot of the current state as a byte array. This snapshot can be used to restore the current state.
+        /// </summary>
+        /// <remarks>
+        /// Normally, you get a byte array by calling this method on this RNG, and later call FromSnapshot() on this RNG and
+        /// give it the earlier byte array. This can be useful for saving state, but it only works if the Randomness implementations
+        /// are the same. The default Randomness is SplitMixRandomness, so if you didn't specify a different one, then the snapshots
+        /// from and to those default RNGs will be compatible.
+        /// </remarks>
+        /// <returns>a snapshot of the current state as a byte array</returns>
+        public byte[] GetSnapshot()
+        {
+            return Rand.GetSnapshot();
+        }
+        /// <summary>
+        /// Restores the state this uses internally to the one stored in snapshot, a byte array.
+        /// </summary>
+        /// <param name="snapshot">a byte array normally produced by GetSnapshot() called on this RNG or its Randomness</param>
+        public void FromSnapshot(byte[] snapshot)
+        {
+            Rand.FromSnapshot(snapshot);
         }
     }
 
@@ -169,7 +213,7 @@ namespace CSDS.Utilities
 
         public SplitMixRandomness()
         {
-            State = (ulong)RNG.GlobalRandom.Next() ^ (ulong)RNG.GlobalRandom.Next() << 21 ^ (ulong)RNG.GlobalRandom.Next() << 42;
+            State = (ulong)RNG.GlobalRandom.Next() >> 5 ^ (ulong)RNG.GlobalRandom.Next() << 21 ^ (ulong)RNG.GlobalRandom.Next() << 42;
         }
 
         public SplitMixRandomness(ulong state)
@@ -187,13 +231,18 @@ namespace CSDS.Utilities
             if(snapshot == null)
                 throw new ArgumentNullException("snapshot");
             if(snapshot.Length < 8)
-                State = (ulong)(-1L - snapshot.LongLength);
+                State = (ulong)(-1L - snapshot.LongLength * 421L);
             State = BitConverter.ToUInt64(snapshot, 0);
         }
 
         public byte[] GetSnapshot()
         {
             return BitConverter.GetBytes(State);
+        }
+
+        public Randomness Copy()
+        {
+            return new SplitMixRandomness(State);
         }
 
         public int Next32()
@@ -210,7 +259,6 @@ namespace CSDS.Utilities
             z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
             z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
             return (long)(z ^ (z >> 31));
-
         }
     }
 }
