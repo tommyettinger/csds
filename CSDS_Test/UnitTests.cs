@@ -1,5 +1,5 @@
 ﻿using System;
-using CSDS;
+using CSDS.Collections;
 using System.Collections.Generic;
 namespace CSDS_Test
 {
@@ -8,10 +8,10 @@ namespace CSDS_Test
         public static void Main(string[] args)
         {
             DateTime start = DateTime.Now;
-            OrderKeeper<string> keeper = new OrderKeeper<string>("-1");
-            for(int i = 0; i < 0x900000; ++i)
+            OrderKeeper<string> keeper = new OrderKeeper<string>("0");
+            for(int i = 1; i < 280; ++i)
             {
-                keeper.AddAfter((i - 1).ToString(), i.ToString());
+                keeper.AddBefore((i - 1).ToString(), i.ToString());
             }
             Console.WriteLine("Finished in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
             int size = keeper.Count;
@@ -20,10 +20,12 @@ namespace CSDS_Test
             foreach(string s in keeper)
             {
                 current = keeper[s];
-                if(!labels.Add(current.Label))
-                /*    // this info takes way too long to print; commented out
-                    Console.WriteLine(s + ": " + current.Label);
-                else*/
+                if(labels.Add(current.Label))
+                {
+                    // this info takes way too long to print; commented out
+                    //Console.WriteLine($"{s,-3}" + ": " + current.Label);
+                }
+                else
                 {
                     // shouldn't happen
                     Console.WriteLine("DUPLICATE LABEL FOR ITEM " + s + ": " + current.Label);

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-namespace CSDS
+namespace CSDS.Collections
 {
     public class Record<T>
     {
@@ -97,43 +97,46 @@ namespace CSDS
         {
             if((existing != null && !Contains(existing)) || Contains(adding))
                 return;
-            Record<T> rec = existing == null ? First : this[existing], succ = rec.Next, put;
-            ulong existingLabel = rec.Label, baseLabel = this[0].Label;
-            if(succ.Equals(rec))
+            unchecked
             {
-                put = new Record<T>(this, adding, (existingLabel - baseLabel) / 2UL + 0x8000000000000000UL + baseLabel, rec, rec);
-                rec.Previous = put;
+                Record<T> rec = existing == null ? First : this[existing], succ = rec.Next, put;
+                ulong existingLabel = rec.Label, baseLabel = this[0].Label;
+                if(succ.Equals(rec))
+                {
+                    put = new Record<T>(this, adding, (existingLabel - baseLabel) / 2UL + 0x8000000000000000UL + baseLabel, rec, rec);
+                    rec.Previous = put;
+                    rec.Next = put;
+                    Add(put);
+                    return;
+                }
+                ulong j = 1UL, w;
+                while((w = succ.Label - existingLabel) <= j * j)
+                {
+                    if(++j >= (ulong)Count)
+                    {
+                        break;
+                    }
+                    succ = succ.Next;
+                }
+                w = succ.Label - existingLabel;
+                put = rec.Next;
+                for(ulong k = 1UL; k < j; k++)
+                {
+                    if(j >= (ulong)Count)
+                        put.Label = 0x8000000000000000UL / j * k * 2UL + existingLabel;
+                    else
+                        put.Label = w / j * k + existingLabel;
+                    put = put.Next;
+                }
+                baseLabel = this[0].Label;
+                if(rec.Next.Equals(First))
+                    put = new Record<T>(this, adding, (rec.Label - baseLabel) / 2UL + 0x8000000000000000UL + baseLabel, rec, rec.Next);
+                else
+                    put = new Record<T>(this, adding, (rec.Label + rec.Next.Label) / 2UL, rec, rec.Next);
+                rec.Next.Previous = put;
                 rec.Next = put;
                 Add(put);
-                return;
             }
-            ulong j = 1UL, w;
-            while((w = succ.Label - existingLabel) <= j * j)
-            {
-                if(++j >= (ulong)Count)
-                {
-                    break;
-                }
-                succ = succ.Next;
-            }
-            w = succ.Label - existingLabel;
-            put = rec.Next;
-            for(ulong k = 1UL; k < j; k++)
-            {
-                if(j >= (ulong)Count)
-                    put.Label = 0x8000000000000000UL / j * k * 2UL + existingLabel;
-                else
-                    put.Label = w / j * k + existingLabel;
-                put = put.Next;
-            }
-            baseLabel = this[0].Label;
-            if(rec.Next.Equals(First))
-                put = new Record<T>(this, adding, (rec.Label - baseLabel) / 2UL + 0x8000000000000000UL + baseLabel, rec, rec.Next);
-            else
-                put = new Record<T>(this, adding, (rec.Label + rec.Next.Label) / 2UL, rec, rec.Next);
-            rec.Next.Previous = put;
-            rec.Next = put;
-            Add(put);
         }
 
         /// <summary>
