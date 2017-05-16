@@ -1,18 +1,75 @@
 ﻿using System;
 using CSDS.Collections;
 using System.Collections.Generic;
+using CSDS.Utilities;
+
 namespace CSDS_Test
 {
     public class UnitTests
     {
         public static void Main(string[] args)
         {
-            DateTime start = DateTime.Now;
-            OrderKeeper<string> keeper = new OrderKeeper<string>("0");
-            for(int i = 1; i < 280; ++i)
+            const int count = 30000;
+            DateTime start;
+            OrderKeeper<string> keeper;
+            List<string> items = new List<string>(count);
+            start = DateTime.Now;
+            keeper = new OrderKeeper<string>("0");
+            for(int i = 1; i < count; ++i)
             {
-                keeper.AddBefore((i - 1).ToString(), i.ToString());
+                keeper.AddAfter((i - 1).ToString(), i.ToString());
             }
+            Console.WriteLine("ADD AT END done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
+#if EXTRA
+            Console.WriteLine("AT END:  Relabelings: " + keeper.relabelings);
+#endif
+            start = DateTime.Now;
+            keeper = new OrderKeeper<string>("0");
+            for(int i = 1; i < count; ++i)
+            {
+                keeper.AddAfter(keeper.First, i.ToString());
+            }
+            Console.WriteLine("ADD AT START done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
+
+            /*
+            foreach(string s in keeper)
+            {
+                Console.Write(s + $": {keeper[s].Label,16:X}, ");
+            }
+            */
+#if EXTRA
+            Console.WriteLine("AT START:  Relabelings: " + keeper.relabelings);
+#endif
+            items.Add("0");
+            start = DateTime.Now;
+            keeper = new OrderKeeper<string>("0");
+            for(int i = 1; i < count; ++i)
+            {
+                string istr = i.ToString();
+                keeper.AddAfter(items[items.Count / 2], istr);
+                items.Add(istr);
+            }
+            Console.WriteLine("ADD IN MIDDLE done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
+#if EXTRA
+            Console.WriteLine("IN MIDDLE:  Relabelings: " + keeper.relabelings);
+#endif
+            items.Clear();
+            items.Add("0");
+            start = DateTime.Now;
+            keeper = new OrderKeeper<string>("0");
+            RNG random = new RNG(0xDADABAFFL);
+            for(int i = 1; i < count; ++i)
+            {
+                string istr = i.ToString();
+                keeper.AddAfter(items[random.Next(items.Count)], istr);
+                items.Add(istr);
+            }
+            Console.WriteLine("ADD AT RANDOM done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
+#if EXTRA
+            Console.WriteLine("RANDOM:  Relabelings: " + keeper.relabelings);
+#endif
+
+            /*
             Console.WriteLine("Finished in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
             int size = keeper.Count;
             SortedSet<ulong> labels = new SortedSet<ulong>();
@@ -43,6 +100,7 @@ namespace CSDS_Test
 
                 }
             }
+            */
             Console.WriteLine("Press any key to close (maybe twice?)");
             Console.ReadKey();
         }

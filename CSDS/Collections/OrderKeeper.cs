@@ -35,6 +35,9 @@ namespace CSDS.Collections
     /// <typeparam name="T">The type of record to maintain order for</typeparam>
     public class OrderKeeper<T> : KeyedCollection<T, Record<T>>, IEnumerable<T>
     {
+#if EXTRA
+        public int relabelings = 0;
+#endif
         //public HashSet<ulong> LabelSet = new HashSet<ulong>();
         public Record<T> First { get; internal set; }
         /// <summary>
@@ -120,6 +123,10 @@ namespace CSDS.Collections
                 }
                 w = succ.Label - existingLabel;
                 put = rec.Next;
+#if EXTRA
+                if(1UL < j)
+                    ++relabelings;
+#endif
                 for(ulong k = 1UL; k < j; k++)
                 {
                     if(j >= (ulong)Count)
