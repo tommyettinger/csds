@@ -123,10 +123,6 @@ namespace CSDS.Collections
                 }
                 w = succ.Label - existingLabel;
                 put = rec.Next;
-#if EXTRA
-                if(1UL < j)
-                    ++relabelings;
-#endif
                 for(ulong k = 1UL; k < j; k++)
                 {
                     if(j >= (ulong)Count)
@@ -134,6 +130,9 @@ namespace CSDS.Collections
                     else
                         put.Label = w / j * k + existingLabel;
                     put = put.Next;
+#if EXTRA
+                    ++relabelings;
+#endif
                 }
                 baseLabel = this[0].Label;
                 if(rec.Next.Equals(First))

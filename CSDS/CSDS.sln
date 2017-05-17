@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSDS", "CSDS.csproj", "{EC9
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSDS_Test", "..\CSDS_Test\CSDS_Test.csproj", "{C1506024-831C-460F-9B1A-90571B9F87F7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DSCCSDS", "..\DSCCSDS\DSCCSDS.csproj", "{3A0D38B2-5B89-453A-B694-FFAA0080A3E5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{C1506024-831C-460F-9B1A-90571B9F87F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1506024-831C-460F-9B1A-90571B9F87F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C1506024-831C-460F-9B1A-90571B9F87F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A0D38B2-5B89-453A-B694-FFAA0080A3E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A0D38B2-5B89-453A-B694-FFAA0080A3E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A0D38B2-5B89-453A-B694-FFAA0080A3E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A0D38B2-5B89-453A-B694-FFAA0080A3E5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

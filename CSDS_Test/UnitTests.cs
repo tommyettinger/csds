@@ -9,7 +9,7 @@ namespace CSDS_Test
     {
         public static void Main(string[] args)
         {
-            const int count = 30000;
+            const int count = 1000000;
             DateTime start;
             OrderKeeper<string> keeper;
             List<string> items = new List<string>(count);
