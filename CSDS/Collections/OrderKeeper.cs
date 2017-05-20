@@ -82,7 +82,7 @@ namespace CSDS.Collections
         }
         /// <summary>
         /// Given an existing Record of T to use as a starting point in the ordering and a T item to add, puts the
-        /// item immediately aftter the Record in the ordering.
+        /// item immediately after the Record in the ordering.
         /// </summary>
         /// <param name="existing">a Record of T that must exist in this OrderKeeper; commonly obtained via square-bracket access</param>
         /// <param name="adding">a T item to add to the OrderKeeper immediately after the Record</param>
