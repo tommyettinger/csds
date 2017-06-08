@@ -11,99 +11,58 @@ namespace CSDS_Test
     {
         public static void Main(string[] args)
         {
-            Randomness rand;
-            long sum;
+            //Randomness rand;
+            //long sum;
             int sumi;
-            //rng = new RNG();
-            rand = new SplitMixRandomness(123456789UL);
-            Random rdm;
-            //rng.Rand = new RushRandomness(123, 456, 789);
             DateTime start;
-            sumi = 0;
-            start = DateTime.Now;
-            for(int i = 0; i < 1000000000; i++)
+            RNG rng;
+            rng = new RNG(new RushRandomness(123, 456, 789));
+            for(int n = 0; n < 5; n++)
             {
-                sumi += rand.Next32();
+                sumi = 0;
+                start = DateTime.Now;
+                for(int i = 0; i < 1000000000; i++)
+                {
+                    sumi += rng.Next();
+                }
+                Console.WriteLine(sumi + "\nRushRandomness done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
             }
-            Console.WriteLine(sumi + "\nSplitMixRandomness done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
-
-            rand = new RushRandomness(123, 456, 789);
-            //rng.Rand = new SplitMixRandomness(123456789UL);
-            sumi = 0;
-            start = DateTime.Now;
-            for(int i = 0; i < 1000000000; i++)
-            {
-                sumi += rand.Next32();
-            }
-            Console.WriteLine(sumi + "\nRushRandomness done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
-
-            rdm = new Random(123456);
-            sumi = 0;
-            start = DateTime.Now;
-            for(int i = 0; i < 1000000000; i++)
-            {
-                sumi += rdm.Next();
-            }
-            Console.WriteLine(sumi + "\nSystem.Random done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
-
-            rand = new SplitMixRandomness(123456789UL);
-            //rng.Rand = new RushRandomness(123, 456, 789);
-            sumi = 0;
-            start = DateTime.Now;
-            for(int i = 0; i < 1000000000; i++)
-            {
-                sumi += rand.Next32();
-            }
-            Console.WriteLine(sumi + "\nSplitMixRandomness done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
             
-            rand = new RushRandomness(123, 456, 789);
-            //rng.Rand = new SplitMixRandomness(123456789UL);
-            sumi = 0;
-            start = DateTime.Now;
-            for(int i = 0; i < 1000000000; i++)
+            rng = new RNG(new HerdRandomness(123456789));
+            for(int n = 0; n < 5; n++)
             {
-                sumi += rand.Next32();
+                sumi = 0;
+                start = DateTime.Now;
+                for(int i = 0; i < 1000000000; i++)
+                {
+                    sumi += rng.Next();
+                }
+                Console.WriteLine(sumi + "\nHerdRandomness done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
             }
-            Console.WriteLine(sumi + "\nRushRandomness done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
-
-            rdm = new Random(123456);
-            sumi = 0;
-            start = DateTime.Now;
-            for(int i = 0; i < 1000000000; i++)
-            {
-                sumi += rdm.Next();
-            }
-            Console.WriteLine(sumi + "\nSystem.Random done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
-
-            rand = new SplitMixRandomness(123456789UL);
-            //rng.Rand = new RushRandomness(123, 456, 789);
-            sumi = 0;
-            start = DateTime.Now;
-            for(int i = 0; i < 1000000000; i++)
-            {
-                sumi += rand.Next32();
-            }
-            Console.WriteLine(sumi + "\nSplitMixRandomness done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
             
-            rand = new RushRandomness(123, 456, 789);
-            //rng.Rand = new SplitMixRandomness(123456789UL);
-            sumi = 0;
-            start = DateTime.Now;
-            for(int i = 0; i < 1000000000; i++)
-            {
-                sumi += rand.Next32();
+            rng = new RNG(new SplitMixRandomness(123456789UL));
+            for(int n = 0; n < 5; n++) {
+                sumi = 0;
+                start = DateTime.Now;
+                for(int i = 0; i < 1000000000; i++)
+                {
+                    sumi += rng.Next();
+                }
+                Console.WriteLine(sumi + "\nSplitMixRandomness done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
             }
-            Console.WriteLine(sumi + "\nRushRandomness done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
-
-            rdm = new Random(123456);
-            sumi = 0;
-            start = DateTime.Now;
-            for(int i = 0; i < 1000000000; i++)
+            
+            Random rdm = new Random(123456);
+            for(int n = 0; n < 5; n++)
             {
-                sumi += rdm.Next();
+                sumi = 0;
+                start = DateTime.Now;
+                for(int i = 0; i < 1000000000; i++)
+                {
+                    sumi += rdm.Next();
+                }
+                Console.WriteLine(sumi + "\nSystem.Random done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
             }
-            Console.WriteLine(sumi + "\nSystem.Random done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
-
+            
         }
     }
 }

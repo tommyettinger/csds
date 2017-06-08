@@ -328,4 +328,118 @@ namespace CSDS.Utilities
             return State1 += ((State0 -= 0x61C8864680B583EBL) >> 24) * 0x632AE59B69B3C209L;
         }
     }
+    public class HerdRandomness : Randomness
+    {
+        public uint choice;
+        public uint[] state = new uint[16];
+
+        public HerdRandomness()
+        {
+            for(int i = 0; i < 16; i++)
+            {
+                state[i] = (uint)(RNG.GlobalRandom.Next() << (9 + i) ^ RNG.GlobalRandom.Next());
+            }
+            choice = (uint)(RNG.GlobalRandom.Next() << 25 ^ RNG.GlobalRandom.Next());
+        }
+        public HerdRandomness(int seed)
+        {
+            uint seed2 = (uint)seed, p;
+            seed2 = ((seed2 >> 19 | seed2 << 13) ^ 0x13A5BA1DU);
+            for(int i = 0; i < 16; i++)
+            {
+                p = (seed2 += 0x9E3779B9U);
+                p ^= p >> (4 + (int)(p >> 28));
+                state[i] = ((p *= 277803737) >> 22) ^ p;
+            }
+            p = (seed2 += 0x8D265FCDU);
+            p ^= p >> (4 + (int)(p >> 28));
+            choice = ((p *= 277803737) >> 22) ^ p;
+        }
+
+        public HerdRandomness(int[] seed)
+        {
+            if(seed == null) seed = new int[1];
+            uint sum = 0, temp, p;
+            for(int s = 0; s < seed.Length; s++)
+            {
+                sum += (uint)seed[s];
+                temp = ((sum >> 19 | sum << 13) ^ 0x13A5BA1DU);
+                for(int i = 0; i < 16; i++)
+                {
+                    p = (temp += 0x9E3779B9U);
+                    p ^= p >> (4 + (int)(p >> 28));
+                    state[i] ^= ((p *= 277803737) >> 22) ^ p;
+                }
+            }
+            p = (sum += 0x8D265FCDU);
+            p ^= p >> (4 + (int)(p >> 28));
+            choice = ((p *= 277803737) >> 22) ^ p;
+        }
+        public HerdRandomness(uint[] stateSeed, uint choiceSeed)
+        {
+            if(stateSeed == null || stateSeed.Length != 16)
+            {
+                for(int i = 0; i < 16; i++)
+                {
+                    state[i] = (uint)(RNG.GlobalRandom.Next() << (9 + i) ^ RNG.GlobalRandom.Next());
+                }
+                choice = (uint)(RNG.GlobalRandom.Next() << 25 ^ RNG.GlobalRandom.Next());
+            }
+            else
+            {
+                Buffer.BlockCopy(stateSeed, 0, state, 0, 64);
+                choice = choiceSeed;
+            }
+        }
+
+        public void FromSnapshot(byte[] snapshot)
+        {
+            if(snapshot == null)
+                throw new ArgumentNullException("snapshot");
+            if(snapshot.Length < 16)
+            {
+                uint seed2 = (uint)snapshot.Length, p;
+                seed2 = ((seed2 >> 19 | seed2 << 13) ^ 0x13A5BA1DU);
+                for(int i = 0; i < 16; i++)
+                {
+                    p = (seed2 += 0x9E3779B9U);
+                    p ^= p >> (4 + (int)(p >> 28));
+                    state[i] = ((p *= 277803737) >> 22) ^ p;
+                }
+                p = (seed2 += 0x8D265FCDU);
+                p ^= p >> (4 + (int)(p >> 28));
+                choice = ((p *= 277803737) >> 22) ^ p;
+
+            }
+            else
+            {
+                Buffer.BlockCopy(snapshot, 64, state, 0, 4);
+                choice = state[0];
+                Buffer.BlockCopy(snapshot, 0, state, 0, 64);
+            }
+        }
+
+        public byte[] GetSnapshot()
+        {
+            byte[] snap = new byte[68];
+            Buffer.BlockCopy(state, 0, snap, 0, 64);
+            Buffer.BlockCopy(new uint[] { choice }, 0, snap, 64, 4);
+            return snap;
+        }
+
+        public Randomness Copy()
+        {
+            return new HerdRandomness(state, choice);
+        }
+
+        public int Next32()
+        {
+            return (int)(state[(choice += 0x9CBC278DU) & 15] += (state[choice >> 28] >> 1) + 0x8E3779B9U);
+        }
+
+        public long Next64()
+        {
+            return state[choice >> 16 & 15] * -0x3943D8696D4A3B7DL ^ (state[(choice += 0x9CBC278DU) & 15] += (state[choice >> 28] >> 1) + 0x8E3779B9U);
+        }
+    }
 }
