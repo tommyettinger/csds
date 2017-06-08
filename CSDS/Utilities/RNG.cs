@@ -232,7 +232,8 @@ namespace CSDS.Utilities
                 throw new ArgumentNullException("snapshot");
             if(snapshot.Length < 8)
                 State = (ulong)(-1L - snapshot.LongLength * 421L);
-            State = BitConverter.ToUInt64(snapshot, 0);
+            else
+                State = BitConverter.ToUInt64(snapshot, 0);
         }
 
         public byte[] GetSnapshot()
@@ -259,6 +260,72 @@ namespace CSDS.Utilities
             z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
             z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
             return (long)(z ^ (z >> 31));
+        }
+    }
+
+    public class RushRandomness : Randomness
+    {
+        public long State0, State1;
+
+        public RushRandomness() : this(RNG.GlobalRandom.Next() << 15 ^ RNG.GlobalRandom.Next(),
+            RNG.GlobalRandom.Next() << 14 ^ RNG.GlobalRandom.Next(), RNG.GlobalRandom.Next() << 16 ^ RNG.GlobalRandom.Next())
+        {
+        }
+        public RushRandomness(long seed)
+        {
+            State0 = seed * -0x3943D8696D4A3B7DL - 0x7CD6391461952C1DL;
+            State1 = seed * -0x7CD6391461952C1DL + 0x3943D8696D4A3B7DL;
+        }
+
+        public RushRandomness(long state0, long state1)
+        {
+            State0 = state0;
+            State1 = state1;
+        }
+
+        public RushRandomness(int seed0, int seed1, int seed2)
+        {
+            State0 = (seed0 * 0xBFL + seed1 * seed2 << 24) ^ -0x7CD6391461952C1DL;
+            State1 = (seed1 * -0x7CD6391461952C1DL ^ seed2 - -0x3943D8696D4A3B7DL) - seed0 * 0x61C8864680B583EBL;
+        }
+
+
+        public void FromSnapshot(byte[] snapshot)
+        {
+            if(snapshot == null)
+                throw new ArgumentNullException("snapshot");
+            if(snapshot.Length < 16)
+            {
+                State0 = (-0x3943D8696D4A3B7DL - snapshot.LongLength * 0x7CD6391461952C1DL);
+                State1 = (0x7CD6391461952C1DL + snapshot.LongLength * 0x3943D8696D4A3B7DL);
+            }
+            else
+            {
+                State0 = BitConverter.ToInt64(snapshot, 0);
+                State1 = BitConverter.ToInt64(snapshot, 8);
+            }
+        }
+
+        public byte[] GetSnapshot()
+        {
+            byte[] snap = new byte[16];
+            Buffer.BlockCopy(new long[] { State0, State1 }, 0, snap, 0, 16);
+            return snap;
+        }
+
+        public Randomness Copy()
+        {
+            return new RushRandomness(State0, State1);
+        }
+
+        public int Next32()
+        {
+            return (int)(State1 += ((State0 -= 0x61C8864680B583EBL) >> 24) * 0x632AE59B69B3C209L);
+        }
+
+        public long Next64()
+        {
+            return State1 += ((State0 -= 0x61C8864680B583EBL) >> 24) * 0x632AE59B69B3C209L;
         }
     }
 }

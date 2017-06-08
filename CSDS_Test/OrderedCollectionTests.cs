@@ -5,7 +5,7 @@ using CSDS.Utilities;
 
 namespace CSDS_Test
 {
-    public class UnitTests
+    public class OrderedCollectionTests
     {
         public static void Main(string[] args)
         {

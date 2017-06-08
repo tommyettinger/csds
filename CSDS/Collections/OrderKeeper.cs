@@ -135,10 +135,9 @@ namespace CSDS.Collections
 #endif
                 }
                 baseLabel = this[0].Label;
-                if(rec.Next.Equals(First))
-                    put = new Record<T>(this, adding, (rec.Label - baseLabel) / 2UL + 0x8000000000000000UL + baseLabel, rec, rec.Next);
-                else
-                    put = new Record<T>(this, adding, (rec.Label + rec.Next.Label) / 2UL, rec, rec.Next);
+                put = rec.Next.Equals(First)
+                    ? new Record<T>(this, adding, (rec.Label - baseLabel) / 2UL + 0x8000000000000000UL + baseLabel, rec, rec.Next)
+                    : new Record<T>(this, adding, (rec.Label + rec.Next.Label) / 2UL, rec, rec.Next);
                 rec.Next.Previous = put;
                 rec.Next = put;
                 Add(put);
