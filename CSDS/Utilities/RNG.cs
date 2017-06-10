@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CSDS.Utilities
 {
@@ -330,16 +326,15 @@ namespace CSDS.Utilities
     }
     public class HerdRandomness : Randomness
     {
-        public uint choice;
+        public uint choice = 0U;
         public uint[] state = new uint[16];
 
         public HerdRandomness()
         {
             for(int i = 0; i < 16; i++)
             {
-                state[i] = (uint)(RNG.GlobalRandom.Next() << (9 + i) ^ RNG.GlobalRandom.Next());
+                choice += (state[i] = (uint)(RNG.GlobalRandom.Next() << (9 + i) ^ RNG.GlobalRandom.Next()));
             }
-            choice = (uint)(RNG.GlobalRandom.Next() << 25 ^ RNG.GlobalRandom.Next());
         }
         public HerdRandomness(int seed)
         {
@@ -349,31 +344,38 @@ namespace CSDS.Utilities
             {
                 p = (seed2 += 0x9E3779B9U);
                 p ^= p >> (4 + (int)(p >> 28));
-                state[i] = ((p *= 277803737) >> 22) ^ p;
+                choice += (state[i] = ((p *= 277803737) >> 22) ^ p);
             }
-            p = (seed2 += 0x8D265FCDU);
-            p ^= p >> (4 + (int)(p >> 28));
-            choice = ((p *= 277803737) >> 22) ^ p;
         }
 
         public HerdRandomness(int[] seed)
         {
-            if(seed == null) seed = new int[1];
-            uint sum = 0, temp, p;
-            for(int s = 0; s < seed.Length; s++)
+            uint sum = 0U, temp, p;
+            if(seed == null)
             {
-                sum += (uint)seed[s];
-                temp = ((sum >> 19 | sum << 13) ^ 0x13A5BA1DU);
-                for(int i = 0; i < 16; i++)
+                temp = 0x13A5BA1DU;
+                for(int i = 0; i< 16; i++)
                 {
                     p = (temp += 0x9E3779B9U);
                     p ^= p >> (4 + (int)(p >> 28));
-                    state[i] ^= ((p *= 277803737) >> 22) ^ p;
+                    choice += (state[i] = ((p *= 277803737) >> 22) ^ p);
+                }
+}
+            else
+            {
+                temp = 0U;
+                for(int s = 0; s < seed.Length; s++)
+                {
+                    sum += (uint)seed[s];
+                    temp += ((sum >> 19 | sum << 13) ^ 0x13A5BA1DU);
+                    for(int i = 0; i< 16; i++)
+                    {
+                        p = (temp += 0x9E3779B9U);
+                        p ^= p >> (4 + (int)(p >> 28));
+                        choice += (state[i] ^= ((p *= 277803737) >> 22) ^ p);
+                    }
                 }
             }
-            p = (sum += 0x8D265FCDU);
-            p ^= p >> (4 + (int)(p >> 28));
-            choice = ((p *= 277803737) >> 22) ^ p;
         }
         public HerdRandomness(uint[] stateSeed, uint choiceSeed)
         {
@@ -381,9 +383,8 @@ namespace CSDS.Utilities
             {
                 for(int i = 0; i < 16; i++)
                 {
-                    state[i] = (uint)(RNG.GlobalRandom.Next() << (9 + i) ^ RNG.GlobalRandom.Next());
+                    choice += (state[i] = (uint)(RNG.GlobalRandom.Next() << (9 + i) ^ RNG.GlobalRandom.Next()));
                 }
-                choice = (uint)(RNG.GlobalRandom.Next() << 25 ^ RNG.GlobalRandom.Next());
             }
             else
             {
@@ -396,7 +397,7 @@ namespace CSDS.Utilities
         {
             if(snapshot == null)
                 throw new ArgumentNullException("snapshot");
-            if(snapshot.Length < 16)
+            if(snapshot.Length < 68)
             {
                 uint seed2 = (uint)snapshot.Length, p;
                 seed2 = ((seed2 >> 19 | seed2 << 13) ^ 0x13A5BA1DU);
@@ -434,12 +435,302 @@ namespace CSDS.Utilities
 
         public int Next32()
         {
-            return (int)(state[(choice += 0x9CBC278DU) & 15] += (state[choice >> 28] >> 1) + 0x8E3779B9U);
+            return (int)(state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1));
         }
 
         public long Next64()
         {
-            return state[choice >> 16 & 15] * -0x3943D8696D4A3B7DL ^ (state[(choice += 0x9CBC278DU) & 15] += (state[choice >> 28] >> 1) + 0x8E3779B9U);
+            return (state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1))
+                * 0x632AE59B69B3C209L - choice;
         }
+    }
+    /// <summary>
+    /// Very close to RNG with HerdRandomness hard-coded as its Randomness, but a fair amount faster thanks to less overhead.
+    /// </summary>
+    /// <remarks>
+    /// Uses a different "format" of snapshot that this can process more easily, a uint array instead of a byte array.
+    /// A good replacement for System.Random due to drastically higher speed and period, as well as comparable or better quality,
+    /// a loadable and settable state via snapshots, and various other useful features, like NextInt() for 32-bit random values.
+    /// </remarks>
+    public class PRNG : Random
+    {
+        //public static Random GlobalRandom = new Random();
+
+        public uint choice = 0U;
+        public uint[] state = new uint[16];
+
+        /// <summary>
+        /// Constructs a randomly-seeded PRNG using 32 calls of System.Random's Next() method on a global Random.
+        /// </summary>
+        public PRNG()
+        {
+            for(int i = 0; i < 16; i++)
+            {
+                choice += (state[i] = (uint)(RNG.GlobalRandom.Next() << (9 + i) ^ RNG.GlobalRandom.Next()));
+            }
+        }
+        /// <summary>
+        /// Constructs a PRNG using just one int for a seed. A PRNG object has 17 ints of total state, so the set of
+        /// distinct PRNGs that can be produced by this constuctor is much smaller than the total set of PRNGs possible.
+        /// Consider using the constructor that takes an int array, or a uint array and a uint.
+        /// </summary>
+        /// <param name="seed">any int</param>
+        public PRNG(int seed)
+        {
+            uint seed2 = (uint)seed, p;
+            seed2 = ((seed2 >> 19 | seed2 << 13) ^ 0x13A5BA1DU);
+            for(int i = 0; i < 16; i++)
+            {
+                p = (seed2 += 0x9E3779B9U);
+                p ^= p >> (4 + (int)(p >> 28));
+                choice += (state[i] = ((p *= 277803737) >> 22) ^ p);
+            }
+        }
+
+        /// <summary>
+        /// Constructs a PRNG while initializing the state (which is a uint array) using the given int array.
+        /// Each item in the given int array will be used to iteratively modify each of the 16 state items, with
+        /// the choice field starting at 0 but having each step of change to a state item added to it as a sum.
+        /// You can give this an array with more or less than 16 elements, or even null, and it will still work.
+        /// The order that values appear in the seed affects the resulting PRNG.
+        /// </summary>
+        /// <param name="seed">an int array, which can be null, empty, or any length</param>
+        public PRNG(int[] seed)
+        {
+            uint sum = 0U, temp, p;
+            if(seed == null)
+            {
+                temp = 0x13A5BA1DU;
+                for(int i = 0; i < 16; i++)
+                {
+                    p = (temp += 0x9E3779B9U);
+                    p ^= p >> (4 + (int)(p >> 28));
+                    choice += (state[i] = ((p *= 277803737) >> 22) ^ p);
+                }
+            }
+            else
+            {
+                temp = 0U;
+                for(int s = 0; s < seed.Length; s++)
+                {
+                    sum += (uint)seed[s];
+                    temp += ((sum >> 19 | sum << 13) ^ 0x13A5BA1DU);
+                    for(int i = 0; i < 16; i++)
+                    {
+                        p = (temp += 0x9E3779B9U);
+                        p ^= p >> (4 + (int)(p >> 28));
+                        choice += (state[i] ^= ((p *= 277803737) >> 22) ^ p);
+                    }
+                }
+            }
+        }
+        /// <summary>
+        /// Attempts to reproduce the exact state and choice values given as parameters.
+        /// </summary>
+        /// <remarks>
+        /// If stateSeed is null or is less than 16 elements in length, this will fall back to
+        /// the behavior of the zero-argument constructor.
+        /// </remarks>
+        /// <param name="stateSeed">an array of uint that should be 16 elements long (it can be longer, but extra values won't be used)</param>
+        /// <param name="choiceSeed">a uint that will be used in a slightly different way from the rest of the state, and so is separate</param>
+        public PRNG(uint[] stateSeed, uint choiceSeed)
+        {
+            if(stateSeed == null || stateSeed.Length != 16)
+            {
+                for(int i = 0; i < 16; i++)
+                {
+                    choice += (state[i] = (uint)(RNG.GlobalRandom.Next() << (9 + i) ^ RNG.GlobalRandom.Next()));
+                }
+            }
+            else
+            {
+                Buffer.BlockCopy(stateSeed, 0, state, 0, 64);
+                choice = choiceSeed;
+            }
+        }
+
+
+        /// <summary>
+        /// Returns a pseudo-random long, which can be positive or negative and have any 64-bit value.
+        /// </summary>
+        /// <returns>any int, all 64 bits are pseudo-random</returns>
+
+        public long NextLong()
+        {
+            return ((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1)) * 0x632AE59B69B3C209L - choice);
+        }
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
+        /// positive (if it is 0 or less, this simply returns 0).
+        /// </summary>
+        /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
+        /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
+
+        public long NextLong(long maxValue)
+        {
+            if(maxValue <= 0) return 0;
+            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
+            for(;;)
+            {
+                long bits = ((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1))
+                    * 0x632AE59B69B3C209L - choice) & 0x7fffffffffffffffL;
+                if(bits >= threshold)
+                    return bits % maxValue;
+            }
+        }
+        /// <summary>
+        /// Gets a random long that is between minValue (inclusive) and maxValue (exclusive);
+        /// both should be positive and minValue should be less than maxValue.
+        /// </summary>
+        /// <param name="minValue">the lower bound as a long, inclusive</param>
+        /// <param name="maxValue">the upper bound as a long, exclusive</param>
+        /// <returns></returns>
+        public long NextLong(long minValue, long maxValue)
+        {
+            return NextLong(maxValue - minValue) + minValue;
+        }
+
+        /// <summary>
+        /// Returns a pseudo-random int, which can be positive or negative and have any 32-bit value.
+        /// </summary>
+        /// <returns>any int, all 32 bits are pseudo-random</returns>
+        public int NextInt()
+        {
+            return (int)(state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1));
+        }
+        /// <summary>
+        /// Returns a positive pseudo-random int, which can have any 31-bit positive value.
+        /// </summary>
+        /// <returns>any random positive int, all but the sign bit are pseudo-random</returns>
+        public override int Next()
+        {
+            return (int)(state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1)) & 0x7fffffff;
+        }
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which can be positive or negative.
+        /// </summary>
+        /// <remarks>Based on code by Daniel Lemire, http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/ </remarks>
+        /// <param name="maxValue"></param>
+        /// <returns></returns>
+        public override int Next(int maxValue)
+        {
+            return (int)((maxValue * ((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1)) & 0x7FFFFFFFL)) >> 31);
+        }
+        /// <summary>
+        /// Gets a random int that is between minValue (inclusive) and maxValue (exclusive); both can be positive or negative.
+        /// </summary>
+        /// <param name="minValue">the inner bound as an int, inclusive</param>
+        /// <param name="maxValue">the outer bound as an int, exclusive</param>
+        /// <returns></returns>
+        public override int Next(int minValue, int maxValue)
+        {
+            return Next(maxValue - minValue) + minValue;
+        }
+        /// <summary>
+        /// Fills buffer with random values, from its start to its end.
+        /// </summary>
+        /// <remarks>
+        /// Based on reference code in the documentation for java.util.Random.
+        /// </remarks>
+        /// <param name="buffer">a non-null byte array that will be modified</param>
+        public override void NextBytes(byte[] buffer)
+        {
+            if(buffer == null)
+                throw new ArgumentNullException("buffer");
+            for(int i = 0; i < buffer.Length;)
+            {
+                uint r = (state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1));
+                for(int n = Math.Min(buffer.Length - i, 4); n-- > 0; r >>= 8)
+                    buffer[i++] = (byte)r;
+            }
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <remarks>
+        /// This uses a technique by Sebastiano Vigna, described at http://xoroshiro.di.unimi.it/#remarks
+        /// </remarks>
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        public override double NextDouble()
+        {
+            return BitConverter.Int64BitsToDouble(0x3FF0000000000000L |
+                (((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1)) * 0x632AE59B69B3C209L - choice) & 0x000FFFFFFFFFFFFFL)) - 1.0;
+        }
+        /// <summary>
+        /// Gets a random double between -1.0 (inclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <remarks>
+        /// This uses a technique by Sebastiano Vigna, described at http://xoroshiro.di.unimi.it/#remarks
+        /// </remarks>
+        /// <returns>a pseudo-random double between -1.0 inclusive and 1.0 exclusive</returns>
+        public double NextSignedDouble()
+        {
+            return BitConverter.Int64BitsToDouble(0x4000000000000000L |
+                (((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1)) * 0x632AE59B69B3C209L - choice) & 0x000FFFFFFFFFFFFFL)) - 3.0;
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <remarks>
+        /// The same code as NextDouble().
+        /// This uses a technique by Sebastiano Vigna, described at http://xoroshiro.di.unimi.it/#remarks
+        /// </remarks>
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        protected override double Sample()
+        {
+            return BitConverter.Int64BitsToDouble(0x3FF0000000000000L |
+                (((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1)) * 0x632AE59B69B3C209L - choice) & 0x000FFFFFFFFFFFFFL)) - 1.0;
+        }
+        /// <summary>
+        /// Returns a new RNG using the same algorithm and a copy of the internal state this uses.
+        /// Calling the same methods on this RNG and its copy should produce the same values.
+        /// </summary>
+        /// <returns>a copy of this RNG</returns>
+        public PRNG Copy()
+        {
+            return new PRNG(state, choice);
+        }
+        /// <summary>
+        /// Gets a snapshot of the current state as a uint array. This snapshot can be used to restore the current state.
+        /// </summary>
+        /// <returns>a snapshot of the current state as a uint array</returns>
+        public uint[] GetSnapshot()
+        {
+            uint[] snap = new uint[17];
+            Array.Copy(state, snap, 16);
+            snap[16] = choice;
+            return snap;
+        }
+
+        /// <summary>
+        /// Restores the state this uses internally to the one stored in snapshot, a uint array.
+        /// </summary>
+        /// <param name="snapshot">a uint array normally produced by GetSnapshot() called on this PRNG</param>
+        public void FromSnapshot(uint[] snapshot)
+        {
+            if(snapshot == null)
+                throw new ArgumentNullException("snapshot");
+            if(snapshot.Length < 17)
+            {
+                uint seed2 = (uint)snapshot.Length, p;
+                seed2 = ((seed2 >> 19 | seed2 << 13) ^ 0x13A5BA1DU);
+                for(int i = 0; i < 16; i++)
+                {
+                    p = (seed2 += 0x9E3779B9U);
+                    p ^= p >> (4 + (int)(p >> 28));
+                    state[i] = ((p *= 277803737) >> 22) ^ p;
+                }
+                p = (seed2 += 0x8D265FCDU);
+                p ^= p >> (4 + (int)(p >> 28));
+                choice = ((p *= 277803737) >> 22) ^ p;
+
+            }
+            else
+            {
+                Array.Copy(snapshot, state, 16);
+                choice = snapshot[16];
+            }
+        }
+
     }
 }
