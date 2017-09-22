@@ -343,6 +343,68 @@ namespace CSDS.Utilities
 
     }
 
+    /// <summary>
+    /// Based on Thrust32RNG in the Sarong project (which is in Java, and has the same author, me).
+    /// </summary>
+    public class ThrustRandomness : Randomness
+    {
+        public uint State;
+
+        public ThrustRandomness()
+            : this((uint)RNG.GlobalRandom.Next())
+        {
+        }
+
+        public ThrustRandomness(uint state)
+        {
+            State = state;
+        }
+
+        public void FromSnapshot(byte[] snapshot)
+        {
+            if(snapshot == null)
+                throw new ArgumentNullException("snapshot");
+            if(snapshot.Length < 4)
+            {
+                State = (uint)(181U + snapshot.Length * 421U);
+            }
+            else
+            {
+                State = BitConverter.ToUInt32(snapshot, 0);
+            }
+        }
+
+        public byte[] GetSnapshot()
+        {
+            return BitConverter.GetBytes(State);
+        }
+
+        public Randomness Copy()
+        {
+            return new ThrustRandomness(State);
+        }
+
+        public int Next32()
+        {
+            uint z = (State += 0x7F4A7C15U);
+            z = (z ^ z >> 14) * (0x41C64E6DU + (z & 0x7FFEU));
+            return (int)(z ^ z >> 13);
+        }
+
+        public long Next64()
+        {
+            uint x = State + 0x7F4A7C15U, y = (State += 0xFE94F82AU);
+            x = (x ^ x >> 14) * (0x41C64E6DU + (x & 0x7FFEU));
+            y = (y ^ y >> 14) * (0x41C64E6DU + (y & 0x7FFEU));
+            return (long)(x ^ x >> 13) << 32 ^ (y ^ y >> 13);
+        }
+        public static uint determine(uint state)
+        {
+            state = ((state *= 0x7F4A7C15U) ^ state >> 14) * (0x41C64E6DU + (state & 0x7FFEU));
+            return state ^ state >> 13;
+        }
+    }
+
     public class RushRandomness : Randomness
     {
         public long State0, State1;
@@ -724,7 +786,7 @@ namespace CSDS.Utilities
             for(int i = 0; i < buffer.Length;)
             {
                 uint r = (state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1));
-                for(int n = Math.Min(buffer.Length - i, 4); n-- > 0; r >>= 8)
+                for(int n = Math.Min(buffer.Length - i, 4); n-- > 0; r >>= 4)
                     buffer[i++] = (byte)r;
             }
         }
@@ -818,10 +880,9 @@ namespace CSDS.Utilities
 
     }
     /// <summary>
-    /// Very close to RNG with HerdRandomness hard-coded as its Randomness, but a fair amount faster thanks to less overhead.
+    /// Very close to RNG with SMARandomness hard-coded as its Randomness, but a fair amount faster thanks to less overhead.
     /// </summary>
     /// <remarks>
-    /// Uses a different "format" of snapshot that this can process more easily, a uint array instead of a byte array.
     /// A good replacement for System.Random due to drastically higher speed and period, as well as comparable or better quality,
     /// a loadable and settable state via snapshots, and various other useful features, like NextInt() for 32-bit random values.
     /// </remarks>
@@ -835,7 +896,7 @@ namespace CSDS.Utilities
             : this((uint)RNG.GlobalRandom.Next())
         {
         }
-        
+
         public PRNG2(uint state)
         {
             State = state;
@@ -876,8 +937,8 @@ namespace CSDS.Utilities
             uint y = (State += 0x9E3779B9U),//(State == 0) ? (Inc += 0x632BE5A6) : Inc),
                     z = (State += 0x9E3779B9U);// (State == 0) ? (Inc += 0x632BE5A6) : Inc);
             y = (y ^ (y >> 16)) * 0x85EBCA6B;
-            y = (y ^ (y >> 13)) * 0xC2B2AE35;
             z = (z ^ (z >> 16)) * 0x85EBCA6B;
+            y = (y ^ (y >> 13)) * 0xC2B2AE35;
             z = (z ^ (z >> 13)) * 0xC2B2AE35;
             return (long)(y ^ (y >> 16)) << 32 ^ (z ^ (z >> 16));
         }
@@ -905,8 +966,8 @@ namespace CSDS.Utilities
                 uint y = (State += 0x9E3779B9U),//(State == 0) ? (Inc += 0x632BE5A6) : Inc),
                     z = (State += 0x9E3779B9U);// (State == 0) ? (Inc += 0x632BE5A6) : Inc);
                 y = (y ^ (y >> 16)) * 0x85EBCA6B;
-                y = (y ^ (y >> 13)) * 0xC2B2AE35;
                 z = (z ^ (z >> 16)) * 0x85EBCA6B;
+                y = (y ^ (y >> 13)) * 0xC2B2AE35;
                 z = (z ^ (z >> 13)) * 0xC2B2AE35;
                 long bits = ((long)(y ^ (y >> 16)) << 32 ^ (z ^ (z >> 16))) & 0x7fffffffffffffffL;
                 if(bits >= threshold)
@@ -987,7 +1048,7 @@ namespace CSDS.Utilities
                 z = (z ^ (z >> 16)) * 0x85EBCA6BU;
                 z = (z ^ (z >> 13)) * 0xC2B2AE35U;
                 z ^= (z >> 16);
-                for(int n = Math.Min(buffer.Length - i, 4); n-- > 0; z >>= 8)
+                for(int n = Math.Min(buffer.Length - i, 4); n-- > 0; z >>= 4)
                     buffer[i++] = (byte)z;
             }
         }
@@ -1003,10 +1064,10 @@ namespace CSDS.Utilities
             uint y = (State += 0x9E3779B9U),//(State == 0) ? (Inc += 0x632BE5A6) : Inc),
                 z = (State += 0x9E3779B9U);// (State == 0) ? (Inc += 0x632BE5A6) : Inc);
             y = (y ^ (y >> 16)) * 0x85EBCA6B;
-            y = (y ^ (y >> 13)) * 0xC2B2AE35;
             z = (z ^ (z >> 16)) * 0x85EBCA6B;
+            y = (y ^ (y >> 13)) * 0xC2B2AE35;
             z = (z ^ (z >> 13)) * 0xC2B2AE35;
-            
+
             return BitConverter.Int64BitsToDouble(0x3FF0000000000000L |
                 (((long)(y ^ (y >> 16)) << 32 ^ (z ^ (z >> 16))) & 0x000FFFFFFFFFFFFFL)) - 1.0;
         }
@@ -1022,8 +1083,8 @@ namespace CSDS.Utilities
             uint y = (State += 0x9E3779B9U),//(State == 0) ? (Inc += 0x632BE5A6) : Inc),
                 z = (State += 0x9E3779B9U);// (State == 0) ? (Inc += 0x632BE5A6) : Inc);
             y = (y ^ (y >> 16)) * 0x85EBCA6B;
-            y = (y ^ (y >> 13)) * 0xC2B2AE35;
             z = (z ^ (z >> 16)) * 0x85EBCA6B;
+            y = (y ^ (y >> 13)) * 0xC2B2AE35;
             z = (z ^ (z >> 13)) * 0xC2B2AE35;
 
             return BitConverter.Int64BitsToDouble(0x4000000000000000L |
@@ -1042,8 +1103,8 @@ namespace CSDS.Utilities
             uint y = (State += 0x9E3779B9U),//(State == 0) ? (Inc += 0x632BE5A6) : Inc),
                 z = (State += 0x9E3779B9U);// (State == 0) ? (Inc += 0x632BE5A6) : Inc);
             y = (y ^ (y >> 16)) * 0x85EBCA6B;
-            y = (y ^ (y >> 13)) * 0xC2B2AE35;
             z = (z ^ (z >> 16)) * 0x85EBCA6B;
+            y = (y ^ (y >> 13)) * 0xC2B2AE35;
             z = (z ^ (z >> 13)) * 0xC2B2AE35;
 
             return BitConverter.Int64BitsToDouble(0x3FF0000000000000L |
@@ -1053,10 +1114,209 @@ namespace CSDS.Utilities
         /// Returns a new PRNG2 using the same algorithm and a copy of the internal state this uses.
         /// Calling the same methods on this PRNG2 and its copy should produce the same values.
         /// </summary>
-        /// <returns>a copy of this RNG</returns>
+        /// <returns>a copy of this PRNG2</returns>
         public PRNG2 Copy()
         {
             return new PRNG2(State);
+        }
+    }
+    /// <summary>
+    /// Very close to RNG with ThrustRandomness hard-coded as its Randomness, but a fair amount faster thanks to less overhead.
+    /// </summary>
+    /// <remarks>
+    /// Usually a good replacement for System.Random due to drastically higher speed and period, as well as comparable or better quality,
+    /// a loadable and settable state via snapshots, and various other useful features, like NextInt() for 32-bit random values. It has
+    /// a low period, however, of 2 to the 32 instead of
+    /// </remarks>
+    public class PRNG3 : Random
+    {
+        public uint State;
+
+        public PRNG3()
+            : this((uint)RNG.GlobalRandom.Next())
+        {
+        }
+
+        public PRNG3(uint state)
+        {
+            State = state;
+        }
+
+        public void FromSnapshot(byte[] snapshot)
+        {
+            if(snapshot == null)
+                throw new ArgumentNullException("snapshot");
+            if(snapshot.Length < 8)
+            {
+                State = (uint)(181U + snapshot.Length * 421U);
+            }
+            else
+            {
+                State = BitConverter.ToUInt32(snapshot, 0);
+            }
+        }
+
+        public byte[] GetSnapshot()
+        {
+            return BitConverter.GetBytes(State);
+        }
+        /// <summary>
+        /// Returns a pseudo-random int, which can be positive or negative and have any 32-bit value.
+        /// </summary>
+        /// <returns>any int, all 32 bits are pseudo-random</returns>
+        public int NextInt()
+        {
+            uint z = (State += 0x7F4A7C15U);
+            z = (z ^ z >> 14) * (0x41C64E6DU + (z & 0x7FFEU));
+            return (int)(z ^ z >> 13);
+        }
+        /// <summary>
+        /// Returns a pseudo-random long, which can be positive or negative and have any 64-bit value.
+        /// </summary>
+        /// <returns>any int, all 64 bits are pseudo-random</returns>
+        public long NextLong()
+        {
+            uint x = State + 0x7F4A7C15U, y = (State += 0xFE94F82AU);
+            x = (x ^ x >> 14) * (0x41C64E6DU + (x & 0x7FFEU));
+            y = (y ^ y >> 14) * (0x41C64E6DU + (y & 0x7FFEU));
+            return (long)(x ^ x >> 13) << 32 ^ (y ^ y >> 13);
+        }
+
+        public static uint determine(uint state)
+        {
+            state = ((state *= 0x7F4A7C15U) ^ state >> 14) * (0x41C64E6DU + (state & 0x7FFEU));
+            return state ^ state >> 13;
+        }
+
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
+        /// positive (if it is 0 or less, this simply returns 0).
+        /// </summary>
+        /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
+        /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
+
+        public long NextLong(long maxValue)
+        {
+            if(maxValue <= 0) return 0;
+            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
+            for(;;)
+            {
+                uint x = State + 0x7F4A7C15U, y = (State += 0xFE94F82AU);
+                x = (x ^ x >> 14) * (0x41C64E6DU + (x & 0x7FFEU));
+                y = (y ^ y >> 14) * (0x41C64E6DU + (y & 0x7FFEU));
+                long bits = ((long)(x ^ x >> 13) << 32 ^ (y ^ y >> 13)) & 0x7fffffffffffffffL;
+                if(bits >= threshold)
+                    return bits % maxValue;
+            }
+        }
+        /// <summary>
+        /// Gets a random long that is between minValue (inclusive) and maxValue (exclusive);
+        /// both should be positive and minValue should be less than maxValue.
+        /// </summary>
+        /// <param name="minValue">the lower bound as a long, inclusive</param>
+        /// <param name="maxValue">the upper bound as a long, exclusive</param>
+        /// <returns></returns>
+        public long NextLong(long minValue, long maxValue)
+        {
+            return NextLong(maxValue - minValue) + minValue;
+        }
+
+        /// <summary>
+        /// Returns a positive pseudo-random int, which can have any 31-bit positive value.
+        /// </summary>
+        /// <returns>any random positive int, all but the sign bit are pseudo-random</returns>
+        public override int Next()
+        {
+            uint z = (State += 0x7F4A7C15U);
+            z = (z ^ z >> 14) * (0x41C64E6DU + (z & 0x7FFEU));
+            return (int)(z ^ z >> 13) & 0x7fffffff;
+        }
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which can be positive or negative.
+        /// </summary>
+        /// <remarks>Based on code by Daniel Lemire, http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/ </remarks>
+        /// <param name="maxValue"></param>
+        /// <returns></returns>
+        public override int Next(int maxValue)
+        {
+            uint z = (State += 0x7F4A7C15U);
+            z = (z ^ z >> 14) * (0x41C64E6DU + (z & 0x7FFEU));
+            return (int)((maxValue * ((z ^ (z >> 13)) & 0x7FFFFFFFL)) >> 31);
+        }
+        /// <summary>
+        /// Gets a random int that is between minValue (inclusive) and maxValue (exclusive); both can be positive or negative.
+        /// </summary>
+        /// <param name="minValue">the inner bound as an int, inclusive</param>
+        /// <param name="maxValue">the outer bound as an int, exclusive</param>
+        /// <returns></returns>
+        public override int Next(int minValue, int maxValue)
+        {
+            return Next(maxValue - minValue) + minValue;
+        }
+        /// <summary>
+        /// Fills buffer with random values, from its start to its end.
+        /// </summary>
+        /// <remarks>
+        /// Based on reference code in the documentation for java.util.Random.
+        /// </remarks>
+        /// <param name="buffer">a non-null byte array that will be modified</param>
+        public override void NextBytes(byte[] buffer)
+        {
+            if(buffer == null)
+                throw new ArgumentNullException("buffer");
+            for(int i = 0; i < buffer.Length;)
+            {
+                uint z = (State += 0x7F4A7C15U);
+                z = (z ^ z >> 14) * (0x41C64E6DU + (z & 0x7FFEU));
+                z ^= (z >> 13);
+                for(int n = Math.Min(buffer.Length - i, 4); n-- > 0; z >>= 4)
+                    buffer[i++] = (byte)z;
+            }
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        public override double NextDouble()
+        {
+            uint x = State + 0x7F4A7C15U, y = (State += 0xFE94F82AU);
+            x = (x ^ x >> 14) * (0x41C64E6DU + (x & 0x7FFEU));
+            y = (y ^ y >> 14) * (0x41C64E6DU + (y & 0x7FFEU));
+            return (((long)(x ^ x >> 13) << 32 ^ (y ^ y >> 13)) & 0x1FFFFFFFFFFFFFL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Gets a random double between -1.0 (exclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <returns>a pseudo-random double between -1.0 exclusive and 1.0 exclusive</returns>
+        public double NextSignedDouble()
+        {
+            uint x = State + 0x7F4A7C15U, y = (State += 0xFE94F82AU);
+            x = (x ^ x >> 14) * (0x41C64E6DU + (x & 0x7FFEU));
+            y = (y ^ y >> 14) * (0x41C64E6DU + (y & 0x7FFEU));
+            return (((long)(x ^ x >> 13) << 32 ^ (y ^ y >> 13)) >> 11) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <remarks>
+        /// The same code as NextDouble().
+        /// </remarks>
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        protected override double Sample()
+        {
+            uint x = State + 0x7F4A7C15U, y = (State += 0xFE94F82AU);
+            x = (x ^ x >> 14) * (0x41C64E6DU + (x & 0x7FFEU));
+            y = (y ^ y >> 14) * (0x41C64E6DU + (y & 0x7FFEU));
+            return (((long)(x ^ x >> 13) << 32 ^ (y ^ y >> 13)) & 0x1FFFFFFFFFFFFFL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Returns a new PRNG3 using the same algorithm and a copy of the internal state this uses.
+        /// Calling the same methods on this PRNG3 and its copy should produce the same values.
+        /// </summary>
+        /// <returns>a copy of this PRNG3</returns>
+        public PRNG3 Copy()
+        {
+            return new PRNG3(State);
         }
     }
 
