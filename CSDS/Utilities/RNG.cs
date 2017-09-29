@@ -594,9 +594,8 @@ namespace CSDS.Utilities
     /// Very close to RNG with HerdRandomness hard-coded as its Randomness, but a fair amount faster thanks to less overhead.
     /// </summary>
     /// <remarks>
+    /// PRNG4 (in this same namespace) is recommended as an update over this class, since it has higher quality.
     /// Uses a different "format" of snapshot that this can process more easily, a uint array instead of a byte array.
-    /// A good replacement for System.Random due to drastically higher speed and period, as well as comparable or better quality,
-    /// a loadable and settable state via snapshots, and various other useful features, like NextInt() for 32-bit random values.
     /// </remarks>
     public class PRNG : Random
     {
@@ -1319,5 +1318,247 @@ namespace CSDS.Utilities
             return new PRNG3(State);
         }
     }
+    /// <summary>
+    /// Very close to RNG with a higher-quality variant of HerdRandomness hard-coded as its Randomness, but a fair amount faster
+    /// than RNG thanks to less overhead.
+    /// </summary>
+    /// <remarks>
+    /// Uses a different "format" of snapshot that this can process more easily, a uint array instead of a byte array.
+    /// A good replacement for System.Random due to drastically higher speed and period, as well as comparable or better quality,
+    /// a loadable and settable state via snapshots, and various other useful features, like NextInt() for 32-bit random values.
+    /// This passes PractRand statistical quality tests on 64MB of random uints, with no anomalies or failures (PRNG has a few failures).
+    /// </remarks>
+    public class PRNG4 : Random
+    {
+        public static Random GlobalRandom = new Random();
+
+        public uint choice = 0U;
+        public uint[] state = new uint[16];
+
+        public PRNG4()
+        {
+            for(int i = 0; i < 16; i++)
+            {
+                choice += (state[i] = (uint)(GlobalRandom.Next() << (9 + i) ^ GlobalRandom.Next()));
+            }
+        }
+        public PRNG4(int seed)
+        {
+            uint seed2 = (uint)seed;
+            for(uint i = 0; i < 16U; i++)
+            {
+                choice += (state[i] = Randomize(seed2 + i * 0x7F4A7C15U));
+            }
+        }
+
+        public PRNG4(int[] seed)
+        {
+            if(seed == null || seed.Length <= 0) seed = new int[1];
+            uint sum = 0;
+            for(int s = 0; s < seed.Length; s++)
+            {
+                sum += (uint)seed[s];
+                for(uint i = 0; i < 16; i++)
+                {
+                    choice += (state[i] ^= Randomize(sum + i * 0x7F4A7C15U));
+                }
+            }
+        }
+        public PRNG4(uint[] stateSeed, uint choiceSeed)
+        {
+            if(stateSeed == null || stateSeed.Length != 16)
+            {
+                for(int i = 0; i < 16; i++)
+                {
+                    choice += (state[i] = (uint)(GlobalRandom.Next() << (9 + i) ^ GlobalRandom.Next()));
+                }
+            }
+            else
+            {
+                Buffer.BlockCopy(stateSeed, 0, state, 0, 64);
+                choice = choiceSeed;
+            }
+        }
+
+
+        /// <summary>
+        /// Returns a pseudo-random long, which can be positive or negative and have any 64-bit value.
+        /// </summary>
+        /// <returns>any int, all 64 bits are pseudo-random</returns>
+
+        public long NextLong()
+        {
+            return (state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B500000000L ^
+            (state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B5;
+        }
+        /// <summary>
+        /// Gets a pseudo-random int that is between 0 (inclusive) and maxValue (exclusive); maxValue must be
+        /// positive (if it is 0 or less, this simply returns 0).
+        /// </summary>
+        /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
+        /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
+
+        public long NextLong(long maxValue)
+        {
+            if(maxValue <= 0) return 0;
+            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
+            for(;;)
+            {
+                long bits = ((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B500000000L ^
+            (state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B5) & 0x7fffffffffffffffL;
+                if(bits >= threshold)
+                    return bits % maxValue;
+            }
+        }
+        /// <summary>
+        /// Gets a pseudo-random long that is between minValue (inclusive) and maxValue (exclusive);
+        /// both should be positive and minValue should be less than maxValue.
+        /// </summary>
+        /// <param name="minValue">the lower bound as a long, inclusive</param>
+        /// <param name="maxValue">the upper bound as a long, exclusive</param>
+        /// <returns></returns>
+        public long NextLong(long minValue, long maxValue)
+        {
+            return NextLong(maxValue - minValue) + minValue;
+        }
+
+        /// <summary>
+        /// Returns a pseudo-random int, which can be positive or negative and have any 32-bit value.
+        /// </summary>
+        /// <returns>any int, all 32 bits are pseudo-random</returns>
+        public int NextInt()
+        {
+            return (int)((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B5);
+        }
+        /// <summary>
+        /// Returns a positive pseudo-random int, which can have any 31-bit positive value.
+        /// </summary>
+        /// <returns>any random positive int, all but the sign bit are pseudo-random</returns>
+        public override int Next()
+        {
+            return (int)((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B5);
+        }
+        /// <summary>
+        /// Gets a pseudo-random int that is between 0 (inclusive) and maxValue (exclusive), which can be positive or negative.
+        /// </summary>
+        /// <remarks>Based on code by Daniel Lemire, http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/ </remarks>
+        /// <param name="maxValue"></param>
+        /// <returns>an int between 0 and maxValue</returns>
+        public override int Next(int maxValue)
+        {
+            return (int)((maxValue * (((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B5) & 0x7FFFFFFFL)) >> 31);
+        }
+        /// <summary>
+        /// Gets a pseudo-random int that is between minValue (inclusive) and maxValue (exclusive); both can be positive or negative.
+        /// </summary>
+        /// <param name="minValue">the inner bound as an int, inclusive</param>
+        /// <param name="maxValue">the outer bound as an int, exclusive</param>
+        /// <returns>an int between minValue (inclusive) and maxValue (exclusive)</returns>
+        public override int Next(int minValue, int maxValue)
+        {
+            return Next(maxValue - minValue) + minValue;
+        }
+        /// <summary>
+        /// Fills buffer with random values, from its start to its end.
+        /// </summary>
+        /// <remarks>
+        /// Based on reference code in the documentation for java.util.Random.
+        /// </remarks>
+        /// <param name="buffer">a non-null byte array that will be modified</param>
+        public override void NextBytes(byte[] buffer)
+        {
+            if(buffer == null)
+                throw new ArgumentNullException("buffer");
+            for(int i = 0; i < buffer.Length;)
+            {
+                uint r = ((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B5);
+                for(int n = Math.Min(buffer.Length - i, 4); n-- > 0; r >>= 8)
+                    buffer[i++] = (byte)r;
+            }
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        public override double NextDouble()
+        {
+            return (((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B500000000L ^
+            (state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B5) & 0x1FFFFFFFFFFFFFL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <remarks>
+        /// The same code as NextDouble().
+        /// </remarks>
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        protected override double Sample()
+        {
+            return (((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B500000000L ^
+            (state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B5) & 0x1FFFFFFFFFFFFFL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Returns a new RNG using the same algorithm and a copy of the internal state this uses.
+        /// Calling the same methods on this RNG and its copy should produce the same values.
+        /// </summary>
+        /// <returns>a copy of this RNG</returns>
+        public PRNG4 Copy()
+        {
+            return new PRNG4(state, choice);
+        }
+        /// <summary>
+        /// Gets a snapshot of the current state as a uint array. This snapshot can be used to restore the current state.
+        /// </summary>
+        /// <returns>a snapshot of the current state as a uint array</returns>
+        public uint[] GetSnapshot()
+        {
+            uint[] snap = new uint[17];
+            Array.Copy(state, snap, 16);
+            snap[16] = choice;
+            return snap;
+        }
+
+        /// <summary>
+        /// Restores the state this uses internally to the one stored in snapshot, a uint array.
+        /// </summary>
+        /// <param name="snapshot">a uint array normally produced by GetSnapshot() called on this PRNG4</param>
+        public void FromSnapshot(uint[] snapshot)
+        {
+            if(snapshot == null)
+                throw new ArgumentNullException("snapshot");
+            if(snapshot.Length < 17)
+            {
+                uint seed2 = Randomize((uint)snapshot.Length * 0x8D265FCDU);
+                for(uint i = 0; i < 16; i++)
+                {
+                    state[i] = Randomize(seed2 + i * 0x7F4A7C15U);
+                }
+                choice = Randomize(Randomize(seed2 - 0x7F4A7C15U));
+
+            }
+            else
+            {
+                Array.Copy(snapshot, state, 16);
+                choice = snapshot[16];
+            }
+        }
+
+        /// <summary>
+        /// Returns a random permutation of state; if state is the same on two calls to this, this will return the same number.
+        /// This is expected to be called with <code>Randomize(state += 0x7F4A7C15U)</code> to generate a sequence of random numbers, or with
+        /// <code>Randomize(state -= 0x7F4A7C15U)</code> to go backwards in the same sequence. Using other constants for the increment does not
+        /// guarantee quality in the same way; in particular, using <code>Randomize(++state)</code> yields poor results for quality, and other
+        /// very small numbers will likely also be low-quality.
+        /// </summary>
+        /// <param name="state">A UInt32 that should be different every time you want a different random result; use <code>Randomize(state += 0x7F4A7C15U)</code> ideally.</param>
+        /// <returns>A pseudo-random permutation of state.</returns>
+        public static uint Randomize(uint state)
+        {
+            state = (state ^ state >> 14) * (0x41C64E6DU + (state & 0x7FFEU));
+            return state ^ state >> 13;
+        }
+
+    }
+
 
 }

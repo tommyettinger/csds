@@ -16,6 +16,7 @@ namespace CSDS_Test
             Thread.CurrentThread.Priority = ThreadPriority.Highest;
             int sumi;
             Stopwatch stopwatch = new Stopwatch();
+            /*
             {
                 RNG rng = new RNG(new ThrustRandomness(123456789));
                 for(int n = 0; n < 4; n++)
@@ -86,6 +87,7 @@ namespace CSDS_Test
                     Console.WriteLine("{0}\nSplitMixRandomness done in {1}", sumi, stopwatch.Elapsed);
                 }
             }
+            */
             {
                 Random rdm = new Random(123456);
                 for(int n = 0; n < 4; n++)
@@ -100,6 +102,24 @@ namespace CSDS_Test
                     Console.WriteLine("{0}\nSystem.Random done in {1}", sumi, stopwatch.Elapsed);
                 }
             }
+
+
+            {
+                PRNG4 p4 = new PRNG4(987654321);
+                for(int n = 0; n < 4; n++)
+                {
+                    sumi = 0;
+                    stopwatch.Restart();
+                    for(int i = 0; i < 1000000007; i++)
+                    {
+                        sumi += p4.Next();
+                    }
+                    stopwatch.Stop();
+                    Console.WriteLine("{0}\nPRNG4 done in {1}", sumi, stopwatch.Elapsed);
+                }
+            }
+
+
             {
                 PRNG2 p2 = new PRNG2(987654321);
                 for(int n = 0; n < 4; n++)
