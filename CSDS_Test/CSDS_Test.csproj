@@ -39,7 +39,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>CSDS_Test.Bench</StartupObject>
+    <StartupObject>CSDS_Test.OrderedRunner</StartupObject>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -236,13 +236,17 @@
   <ItemGroup>
     <Compile Include="OrderedCollectionTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RNGBenchmarks.cs" />
+    <Compile Include="Benchmarks.cs" />
     <Compile Include="RNGTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CSDS\CSDS.csproj">
       <Project>{EC968BB6-9E19-4E82-B031-5DA69743CD06}</Project>
       <Name>CSDS</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DSCCSDS\DSCCSDS.csproj">
+      <Project>{3a0d38b2-5b89-453a-b694-ffaa0080a3e5}</Project>
+      <Name>DSCCSDS</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

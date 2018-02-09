@@ -27,7 +27,7 @@ namespace DSCCSDS
             return string.Join(", ", list.Select(x => x.Label));
         }
 
-        ulong MOD_M(ulong label) => label;
+        //ulong MOD_M(ulong label) => label;
 
         public int Insertions = 0;
         public int Relabelings = 0;
@@ -105,7 +105,7 @@ namespace DSCCSDS
 
         private ulong LabelRelativeToBase(LinkedListNode<OrderingNode> record)
         {
-            unchecked { return MOD_M(record.Value.Label - BaseRecord.Value.Label); } // todo, base record what kind of node?
+            unchecked { return record.Value.Label - BaseRecord.Value.Label; } // todo, base record what kind of node?
         }
 
         private ulong? NextLabelRelativeToBase(LinkedListNode<OrderingNode> record)
@@ -124,7 +124,7 @@ namespace DSCCSDS
 
             unchecked
             {
-                return MOD_M(finish.Value.Label - start.Value.Label);
+                return finish.Value.Label - start.Value.Label;
             }
         }
 
@@ -187,7 +187,7 @@ namespace DSCCSDS
                     //relabel = GetPortionOfM((double)k)
                     unchecked
                     {
-                        relabel = MOD_M(GetFractionOfM(k, j) + afterNode.Value.Label);
+                        relabel = (GetFractionOfM(k, j) + afterNode.Value.Label);
                     }
                 }
                 else
@@ -195,7 +195,7 @@ namespace DSCCSDS
                     unchecked
                     {
                         //relabel = MOD_M(finalLabel.Value * k / j + afterNode.Value.Label);
-                        relabel = MOD_M(GetFraction(finalLabel.Value, k, j) + afterNode.Value.Label);
+                        relabel = (GetFraction(finalLabel.Value, k, j) + afterNode.Value.Label);
                     }
                 }
                 //string debugInfo3 = $"Relabeling {current.Value.Label} to {relabel}";
@@ -222,7 +222,7 @@ namespace DSCCSDS
             ulong newLabel;
             unchecked
             {
-                newLabel = MOD_M(newLabelRelativeToBase + BaseRecord.Value.Label);
+                newLabel = (newLabelRelativeToBase + BaseRecord.Value.Label);
             }
             var newNode = new LinkedListNode<OrderingNode>(new OrderingNode(newElement, newLabel));
             list.AddAfter(afterNode, newNode);

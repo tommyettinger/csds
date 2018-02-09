@@ -106,7 +106,7 @@ namespace CSDS.Collections
                 ulong existingLabel = rec.Label, baseLabel = this[0].Label;
                 if(succ.Equals(rec))
                 {
-                    put = new Record<T>(this, adding, (existingLabel - baseLabel) / 2UL + 0x8000000000000000UL + baseLabel, rec, rec);
+                    put = new Record<T>(this, adding, (existingLabel - baseLabel >> 1) + 0x8000000000000000UL + baseLabel, rec, rec);
                     rec.Previous = put;
                     rec.Next = put;
                     Add(put);
@@ -126,7 +126,7 @@ namespace CSDS.Collections
                 for(ulong k = 1UL; k < j; k++)
                 {
                     if(j >= (ulong)Count)
-                        put.Label = 0x8000000000000000UL / j * k * 2UL + existingLabel;
+                        put.Label = (0x8000000000000000UL / j * k << 1) + existingLabel;
                     else
                         put.Label = w / j * k + existingLabel;
                     put = put.Next;
@@ -136,8 +136,8 @@ namespace CSDS.Collections
                 }
                 baseLabel = this[0].Label;
                 put = rec.Next.Equals(First)
-                    ? new Record<T>(this, adding, (rec.Label - baseLabel) / 2UL + 0x8000000000000000UL + baseLabel, rec, rec.Next)
-                    : new Record<T>(this, adding, (rec.Label + rec.Next.Label) / 2UL, rec, rec.Next);
+                    ? new Record<T>(this, adding, (rec.Label - baseLabel >> 1) + 0x8000000000000000UL + baseLabel, rec, rec.Next)
+                    : new Record<T>(this, adding, (rec.Label + rec.Next.Label >> 1), rec, rec.Next);
                 rec.Next.Previous = put;
                 rec.Next = put;
                 Add(put);
