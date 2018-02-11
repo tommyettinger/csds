@@ -46,7 +46,7 @@ namespace CSDS.Collections
         /// <param name="initial">The first element to place in the ordering</param>
         public OrderKeeper(T initial) : base()
         {
-            Add((First = new Record<T>(this, default(T), 0UL)));
+            Add((First = new Record<T>(this, default, 0UL)));
             AddAfter(First, initial);
         }
         /// <summary>
@@ -164,7 +164,17 @@ namespace CSDS.Collections
         public void AddBefore(T existing, T adding)
         {
             Record<T> ex = this[existing];
-            if(ex.Previous.Equals(First))
+            if(ex.Equals(First))
+            {
+                AddAfter(First, adding);
+                First = this[adding];
+                ex.Previous.Next = First;
+                ex.Next = First.Next;
+                First.Previous = ex.Previous;
+                ex.Previous = First;
+                First.Next = ex;
+            }
+            else if(ex.Previous.Equals(First))
                 AddAfter(First, adding);
             else
                 AddAfter(ex.Previous.Item, adding);

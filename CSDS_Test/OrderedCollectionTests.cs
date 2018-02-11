@@ -9,34 +9,47 @@ namespace CSDS_Test
     {
         public static void Main(string[] args)
         {
-            const int count = 1000000;
-            DateTime start;
-            
-            OrderedSet<int> keep;
-            start = DateTime.Now;
-            keep = new OrderedSet<int>(count * 2);
-            for(int i = 0; i < count; ++i)
+            const int count = 100;
+            Treap<int> treap = new Treap<int>(Comparer<int>.Default);
+            for (int i = 0; i < count; ++i)
             {
-                keep.Add(i);
+                treap.Add(i);
             }
-            for(int i = 0; i < count; ++i)
+            for (int i = 0; i < count; ++i)
             {
-                keep.AddBefore(i, -1 - i);
+                treap.Add(~i);
             }
-            Console.WriteLine("SPEED TEST done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
-            
-            start = DateTime.Now;
-            OrderKeeper<int> keep2;
-            keep2 = new OrderKeeper<int>(0);
-            for(int i = 1; i < count; ++i)
+            //foreach (int item in treap)
+            //{
+            //    Console.Write(item);
+            //    Console.Write(' ');
+            //}
+            OrderKeeper<int> keep = new OrderKeeper<int>(0);
+            for (int i = 1; i < count; ++i)
             {
-                keep2.AddAfter(i-1, i);
+                keep.AddAfter(i - 1, i);
             }
-            for(int i = 0; i < count; ++i)
+            for (int i = 0; i < count; ++i)
             {
-                keep2.AddBefore(i, -1 - i);
+                keep.AddBefore(-i, ~i);
             }
-            Console.WriteLine("SPEED TEST done in " + DateTime.Now.Subtract(start).TotalMilliseconds + " ms");
+            //foreach (int item in keep)
+            //{
+            //    Console.Write(item);
+            //    Console.Write(' ');
+            //}
+
+            PRNG5 rng = new PRNG5(1337);
+            for (int i = 0; i < count; i++)
+            {
+                int idx1 = rng.Next(-count, count), idx2 = rng.Next(-count, count);
+                Console.WriteLine("idx1 " + idx1 + " with path " + treap.Path(idx1) + ", idx2 " + idx2 + " with path " + treap.Path(idx2));
+                if (keep.OrderOf(idx1, idx2) != treap.Before(idx1, idx2))
+                {
+                    Console.WriteLine("PROBLEM: idx1 " + idx1 + ", id2 " + idx2 + "; OrderKeeper gives " + keep.OrderOf(idx1, idx2) + "; Treap gives " + treap.Before(idx1, idx2));
+                }
+            }
+
             /*
             start = DateTime.Now;
             OrderKeeper<string> keeper;

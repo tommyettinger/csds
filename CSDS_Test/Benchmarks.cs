@@ -18,6 +18,7 @@ namespace CSDS_Test
         private readonly PRNG3 p3 = new PRNG3(123456);
         private readonly PRNG4 p4 = new PRNG4(123456);
         private readonly PRNG5 p5 = new PRNG5(123456);
+        private readonly PRNG6 p6 = new PRNG6(123456);
 
         public RNGBenchmarks()
         {
@@ -34,6 +35,8 @@ namespace CSDS_Test
         public long TestP4() => p4.NextLong();
         [Benchmark]
         public long TestP5() => p5.NextLong();
+        [Benchmark]
+        public long TestP6() => p6.NextLong();
     }
     public class OrderedCollectionBenchmarks
     {
@@ -52,11 +55,11 @@ namespace CSDS_Test
             }
             for (int i = 0; i < count; ++i)
             {
-                keep.AddBefore(i, -1 - i);
+                keep.AddBefore(i, ~i);
             }
             return keep;
         }
-        [Benchmark]
+        //[Benchmark]
         public OrderKeeper<int> TestOrderKeeper()
         {
             OrderKeeper<int> keep = new OrderKeeper<int>(0);
@@ -66,11 +69,11 @@ namespace CSDS_Test
             }
             for (int i = 0; i < count; ++i)
             {
-                keep.AddBefore(i, -1 - i);
+                keep.AddBefore(i, ~i);
             }
             return keep;
         }
-        [Benchmark]
+        //[Benchmark]
         public OrderingCollection<int> TestOrderingCollection()
         {
             OrderingCollection<int> keep = new OrderingCollection<int>();
@@ -81,10 +84,25 @@ namespace CSDS_Test
             }
             for (int i = 0; i < count; ++i)
             {
-                keep.InsertBefore(-1 - i, i);
+                keep.InsertBefore(~i, i);
             }
             return keep;
         }
+        [Benchmark]
+        public Treap<int> TestTreap()
+        {
+            Treap<int> keep = new Treap<int>();
+            for (int i = 0; i < count; ++i)
+            {
+                keep.Add(i);
+            }
+            for (int i = 0; i < count; ++i)
+            {
+                keep.Add(~i);
+            }
+            return keep;
+        }
+
     }
 
     public class RNGRunner
