@@ -41,7 +41,7 @@
     <LangVersion>7.2</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>CSDS_Test.OrderedCollectionTests</StartupObject>
+    <StartupObject>CSDS_Test.RNGRunner</StartupObject>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>

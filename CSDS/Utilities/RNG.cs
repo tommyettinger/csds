@@ -941,7 +941,7 @@ namespace CSDS.Utilities
             z = (z ^ (z >> 13)) * 0xC2B2AE35;
             return (long)(y ^ (y >> 16)) << 32 ^ (z ^ (z >> 16));
         }
-        public static uint determine(uint state)
+        public static uint Determine(uint state)
         {
             state = ((state *= 0x9E3779B9U) ^ (state >> 16)) * 0x85EBCA6BU;
             state = (state ^ (state >> 13)) * 0xC2B2AE35U;
@@ -1843,7 +1843,7 @@ namespace CSDS.Utilities
 
         public byte[] GetSnapshot()
         {
-            byte[] snap = new byte[16];
+            byte[] snap = new byte[32];
             Buffer.BlockCopy(new ulong[] { A, B, C, D }, 0, snap, 0, 32);
             return snap;
         }
@@ -2037,10 +2037,331 @@ namespace CSDS.Utilities
             return new PRNG6(A, B, C, D);
         }
     }
+    public class OriolePRNG : Random
+    {
+        public uint A, B, C;
+
+        public OriolePRNG()
+            : this((uint)RNG.GlobalRandom.Next() >> 5 ^ (uint)RNG.GlobalRandom.Next() << 17,
+                  (uint)RNG.GlobalRandom.Next() >> 6 ^ (uint)RNG.GlobalRandom.Next() << 16,
+                  (uint)RNG.GlobalRandom.Next() >> 7 ^ (uint)RNG.GlobalRandom.Next() << 15)
+        {
+        }
+
+        public OriolePRNG(ulong state)
+        {
+            A = (uint)(state & 0xFFFFFFFFUL);
+            B = (uint)(state >> 32);
+            uint z = ((A ^ B) + 0x9E3779B9U);//(State == 0U) ? (Inc += 0x632BE5A6U) : Inc);
+            z = (z ^ (z >> 16)) * 0x85EBCA6BU;
+            z = (z ^ (z >> 13)) * 0xC2B2AE35U;
+            C = (z ^ (z >> 16));
+        }
+
+        public OriolePRNG(uint a, uint b, uint c)
+        {
+            A = a;
+            B = b;
+            C = c;
+        }
+
+        public void FromSnapshot(byte[] snapshot)
+        {
+            if (snapshot == null)
+                throw new ArgumentNullException("snapshot");
+            if (snapshot.Length < 12)
+            {
+                uint seed2 = Determine((uint)snapshot.Length);
+                A = Determine(seed2);
+                B = Determine(seed2 + 1);
+                C = Determine(seed2 + 2);
+            }
+            else
+            {
+                A = BitConverter.ToUInt32(snapshot, 0);
+                B = BitConverter.ToUInt32(snapshot, 4);
+                C = BitConverter.ToUInt32(snapshot, 8);
+            }
+        }
+
+        public byte[] GetSnapshot()
+        {
+            byte[] snap = new byte[12];
+            Buffer.BlockCopy(new ulong[] { A, B, C }, 0, snap, 0, 12);
+            return snap;
+        }
+
+        /// <summary>
+        /// Returns a pseudo-random int, which can be positive or negative and have any 32-bit value.
+        /// </summary>
+        /// <returns>any int, all 32 bits are pseudo-random</returns>
+        public int NextInt()
+        {
+            uint s0 = A;
+            uint result = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            A = s0 ^ B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result);
+            return (int)(result + (C += 0x632BE5ABU));
+        }
+        /// <summary>
+        /// Returns a pseudo-random long, which can be positive or negative and have any 64-bit value.
+        /// </summary>
+        /// <returns>any long, all 64 bits are pseudo-random</returns>
+        public long NextLong()
+        {
+            uint s0 = A;
+            uint result = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            s0 ^= B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result);
+            result += (C + 0x632BE5ABU);
+            uint result2 = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            A = s0 ^ B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result2);
+            return (long)(result2 + (C += 0xC657CB56U)) << 32 ^ result;
+        }
+        /// <summary>
+        /// Returns a pseudo-random unsigned long, which can have any 64-bit value.
+        /// </summary>
+        /// <returns>any ulong, all 64 bits are pseudo-random</returns>
+        public ulong NextULong()
+        {
+            uint s0 = A;
+            uint result = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            s0 ^= B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result);
+            result += (C + 0x632BE5ABU);
+            uint result2 = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            A = s0 ^ B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result2);
+            return (ulong)(result2 + (C += 0xC657CB56U)) << 32 ^ result;
+        }
+
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
+        /// positive (if it is 0 or less, this simply returns 0).
+        /// </summary>
+        /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
+        /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
+
+        public long NextLong(long maxValue)
+        {
+            if (maxValue <= 0) return 0;
+            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
+            for (; ; )
+            {
+                uint s0 = A;
+                uint result = s0 + B;
+                B ^= s0;
+                MathExtensions.Rotate13(ref s0);
+                s0 ^= B ^ (B << 5);
+                MathExtensions.Rotate28(ref B);
+                MathExtensions.Rotate29(ref result);
+                result += (C + 0x632BE5ABU);
+                uint result2 = s0 + B;
+                B ^= s0;
+                MathExtensions.Rotate13(ref s0);
+                A = s0 ^ B ^ (B << 5);
+                MathExtensions.Rotate28(ref B);
+                MathExtensions.Rotate29(ref result2);
+                long bits = ((long)(result2 + (C += 0xC657CB56U)) << 32 ^ result) & 0x7fffffffffffffffL;
+                if (bits >= threshold)
+                    return bits % maxValue;
+            }
+        }
+        /// <summary>
+        /// Gets a random long that is between minValue (inclusive) and maxValue (exclusive);
+        /// both should be positive and minValue should be less than maxValue.
+        /// </summary>
+        /// <param name="minValue">the lower bound as a long, inclusive</param>
+        /// <param name="maxValue">the upper bound as a long, exclusive</param>
+        /// <returns></returns>
+        public long NextLong(long minValue, long maxValue)
+        {
+            return NextLong(maxValue - minValue) + minValue;
+        }
+
+        /// <summary>
+        /// Returns a positive pseudo-random int, which can have any 31-bit positive value.
+        /// </summary>
+        /// <returns>any random positive int, all but the sign bit are pseudo-random</returns>
+        public override int Next()
+        {
+            uint s0 = A;
+            uint result = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            A = s0 ^ B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result);
+            return (int)(result + (C += 0x632BE5ABU)) & 0x7fffffff;
+        }
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which can be positive or negative.
+        /// </summary>
+        /// <remarks>Based on code by Daniel Lemire, http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/ </remarks>
+        /// <param name="maxValue"></param>
+        /// <returns></returns>
+        public override int Next(int maxValue)
+        {
+            uint s0 = A;
+            uint result = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            A = s0 ^ B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result);
+            return (int)(((ulong)maxValue * (((result + (C += 0x632BE5ABU)) & 0x7FFFFFFFUL))) >> 31);
+        }
+        /// <summary>
+        /// Gets a random int that is between minValue (inclusive) and maxValue (exclusive); both can be positive or negative.
+        /// </summary>
+        /// <param name="minValue">the inner bound as an int, inclusive</param>
+        /// <param name="maxValue">the outer bound as an int, exclusive</param>
+        /// <returns></returns>
+        public override int Next(int minValue, int maxValue)
+        {
+            return Next(maxValue - minValue) + minValue;
+        }
+        /// <summary>
+        /// Fills buffer with random values, from its start to its end.
+        /// </summary>
+        /// <remarks>
+        /// Based on reference code in the documentation for java.util.Random.
+        /// </remarks>
+        /// <param name="buffer">a non-null byte array that will be modified</param>
+        public override void NextBytes(byte[] buffer)
+        {
+            if (buffer == null)
+                throw new ArgumentNullException("buffer");
+            uint s;
+            for (int i = 0; i < buffer.Length;)
+            {
+                uint s0 = A;
+                uint result = s0 + B;
+                B ^= s0;
+                MathExtensions.Rotate13(ref s0);
+                A = s0 ^ B ^ (B << 5);
+                MathExtensions.Rotate28(ref B);
+                MathExtensions.Rotate29(ref result);
+                s = (result + (C += 0x632BE5ABU));
+                for (int n = Math.Min(buffer.Length - i, 4); n-- > 0; s >>= 4)
+                    buffer[i++] = (byte)s;
+            }
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        public override double NextDouble()
+        {
+            uint s0 = A;
+            uint result = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            s0 ^= B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result);
+            result += (C + 0x632BE5ABU);
+            uint result2 = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            A = s0 ^ B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result2);
+            return (((ulong)(result2 + (C += 0xC657CB56U)) << 32 ^ result) & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Gets a random double between -1.0 (exclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <returns>a pseudo-random double between -1.0 exclusive and 1.0 exclusive</returns>
+        public double NextSignedDouble()
+        {
+            uint s0 = A;
+            uint result = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            s0 ^= B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result);
+            result += (C + 0x632BE5ABU);
+            uint result2 = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            A = s0 ^ B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result2);
+            return (((long)(result2 + (C += 0xC657CB56U)) << 32 ^ result) >> 11) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <remarks>
+        /// The same code as NextDouble().
+        /// </remarks>
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        protected override double Sample()
+        {
+            uint s0 = A;
+            uint result = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            s0 ^= B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result);
+            result += (C + 0x632BE5ABU);
+            uint result2 = s0 + B;
+            B ^= s0;
+            MathExtensions.Rotate13(ref s0);
+            A = s0 ^ B ^ (B << 5);
+            MathExtensions.Rotate28(ref B);
+            MathExtensions.Rotate29(ref result2);
+            return (((ulong)(result2 + (C += 0xC657CB56U)) << 32 ^ result) & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Returns a new PRNG7 using the same algorithm and a copy of the internal state this uses.
+        /// Calling the same methods on this PRNG7 and its copy should produce the same values.
+        /// </summary>
+        /// <returns>a copy of this PRNG7</returns>
+        public OriolePRNG Copy()
+        {
+            return new OriolePRNG(A, B, C);
+        }
+        /// <summary>
+        /// Given any uint called state, this produces a unique uint that should seem to have no relation to state.
+        /// </summary>
+        /// <param name="state">any uint</param>
+        /// <returns>any uint</returns>
+        public static uint Determine(uint state)
+        {
+            state = ((state *= 0x9E3779B9U) ^ (state >> 16)) * 0x85EBCA6BU;
+            state = (state ^ (state >> 13)) * 0xC2B2AE35U;
+            return state ^ (state >> 16);
+        }
+    }
 
     public static class MathExtensions
     {
         public static void Rol48(ref this ulong ul) => ul = (ul << 48) | (ul >> 16);
+        public static void Rotate13(ref this uint ul) => ul = (ul << 13) | (ul >> 19);
+        public static void Rotate28(ref this uint ul) => ul = (ul << 28) | (ul >> 4);
+        public static void Rotate29(ref this uint ul) => ul = (ul << 29) | (ul >> 3);
+        public static void Rol(ref this ulong ul, int N) => ul = (ul << N) | (ul >> (64 - N));
+
     }
 
 }

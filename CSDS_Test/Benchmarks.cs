@@ -19,6 +19,7 @@ namespace CSDS_Test
         private readonly PRNG4 p4 = new PRNG4(123456);
         private readonly PRNG5 p5 = new PRNG5(123456);
         private readonly PRNG6 p6 = new PRNG6(123456);
+        private readonly OriolePRNG oriole = new OriolePRNG(123456);
 
         public RNGBenchmarks()
         {
@@ -26,17 +27,19 @@ namespace CSDS_Test
         [Benchmark]
         public long TestR() => rdm.Next();
         //[Benchmark]
-        public long TestP1() => p1.NextLong();
+        public long TestP1() => p1.Next();
         //[Benchmark]
-        public long TestP2() => p2.NextLong();
+        public long TestP2() => p2.Next();
         [Benchmark]
-        public long TestP3() => p3.NextLong();
+        public long TestP3() => p3.Next();
         //[Benchmark]
-        public long TestP4() => p4.NextLong();
+        public long TestP4() => p4.Next();
         [Benchmark]
-        public long TestP5() => p5.NextLong();
+        public long TestP5() => p5.Next();
+        //[Benchmark]
+        public long TestP6() => p6.Next();
         [Benchmark]
-        public long TestP6() => p6.NextLong();
+        public long TestP7() => oriole.Next();
     }
     public class OrderedCollectionBenchmarks
     {
