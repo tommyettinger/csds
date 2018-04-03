@@ -62,12 +62,12 @@ namespace CSDS.Collections
         public Treap(IComparer<T> comparer, ulong state)
         {
             this.comparer = comparer;
-            random = new PRNG5(state);
+            random = new TAPRNG(state);
         }
 
         public IComparer<T> comparer;
         TreapNode<T> root;
-        PRNG5 random;
+        TAPRNG random;
 
         #region ICollection implementation	
 

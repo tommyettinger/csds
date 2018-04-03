@@ -882,21 +882,23 @@ namespace CSDS.Utilities
     /// Very close to RNG with SMARandomness hard-coded as its Randomness, but a fair amount faster thanks to less overhead.
     /// </summary>
     /// <remarks>
-    /// A good replacement for System.Random due to drastically higher speed and period, as well as comparable or better quality,
+    /// A good replacement for System.Random due to drastically higher speed, as well as comparable or better quality,
     /// a loadable and settable state via snapshots, and various other useful features, like NextInt() for 32-bit random values.
+    /// Be advised that the period is small at 2 to the 32 (4294967296), and the sequence of generated numbers will repeat after
+    /// 2 to the 32 calls to Next() or similar 32-bit methods (methods that produce long, ulong, or double values count as two calls).
     /// </remarks>
-    public class PRNG2 : Random
+    public class SplitMixPRNG : Random
     {
         //public static Random GlobalRandom = new Random();
 
         public uint State;
 
-        public PRNG2()
+        public SplitMixPRNG()
             : this((uint)RNG.GlobalRandom.Next())
         {
         }
 
-        public PRNG2(uint state)
+        public SplitMixPRNG(uint state)
         {
             State = state;
         }
@@ -1114,29 +1116,34 @@ namespace CSDS.Utilities
         /// Calling the same methods on this PRNG2 and its copy should produce the same values.
         /// </summary>
         /// <returns>a copy of this PRNG2</returns>
-        public PRNG2 Copy()
+        public SplitMixPRNG Copy()
         {
-            return new PRNG2(State);
+            return new SplitMixPRNG(State);
         }
     }
     /// <summary>
     /// Very close to RNG with ThrustRandomness hard-coded as its Randomness, but a fair amount faster thanks to less overhead.
     /// </summary>
     /// <remarks>
-    /// Usually a good replacement for System.Random due to drastically higher speed and period, as well as comparable or better quality,
+    /// Usually a good replacement for System.Random due to drastically higher speed, as well as better quality according to PractRand tests,
     /// a loadable and settable state via snapshots, and various other useful features, like NextInt() for 32-bit random values. It has
-    /// a low period, however, of 2 to the 32 instead of
+    /// a low period, however, of 2 to the 32 instead of the probably-higher period of System.Random (although System.Random has more state,
+    /// it is not implemented in a way that matches its algorithm's definition, and may not be full-period). The primary weakness of the Thrust
+    /// family of generators is that they cannot produce all possible outputs over their full period (where an output is a uint and the period
+    /// is 2 to the 32). This 32-bit generator is closer to ThrustAlt than the original (more seriously-flawed) Thrust algorithm; ThrustAlt can
+    /// pass quite a lot more testing than Thrust at 64 bits of state (at least 32 TB in PractRand instead of 16GB in PractRand), but at 32 bits
+    /// of state and 4 bytes of output at a time, only 16 GB can be produced before the period is exhausted.
     /// </remarks>
-    public class PRNG3 : Random
+    public class ThrustPRNG : Random
     {
         public uint State;
 
-        public PRNG3()
+        public ThrustPRNG()
             : this((uint)RNG.GlobalRandom.Next())
         {
         }
 
-        public PRNG3(uint state)
+        public ThrustPRNG(uint state)
         {
             State = state;
         }
@@ -1313,9 +1320,9 @@ namespace CSDS.Utilities
         /// Calling the same methods on this PRNG3 and its copy should produce the same values.
         /// </summary>
         /// <returns>a copy of this PRNG3</returns>
-        public PRNG3 Copy()
+        public ThrustPRNG Copy()
         {
-            return new PRNG3(State);
+            return new ThrustPRNG(State);
         }
     }
     /// <summary>
@@ -1561,25 +1568,30 @@ namespace CSDS.Utilities
     }
     /// <summary>
     /// A 64-bit class that's close to RNG with ThrustAlt hard-coded as its Randomness; this is the fastest generator here for most x64 targets.
-    /// ThrustAlt is based on ThrustAltRNG from the Sarong and SquidLib projects in Java; it has very high quality (passing PractRand on 32 TB of
-    /// generated random data) and a decent period of 2 to the 64 (which is probably better than System.Random). While it is fastest on x64 targets,
-    /// it isn't especially slow on x86 either.
+    /// ThrustAlt is based on ThrustAltRNG from the Sarong and SquidLib projects in Java. It has very high quality, passing PractRand on 32 TB of
+    /// generated random data, TestU01's full BigCrush suite with no failures, and gjrand very often (gjrand gives both a final score and a number of
+    /// failures of various degrees; Thrust's 64-bit variant never goes below 0.1 on final score and only rarely has failures above the first
+    /// rank, which it considers probably insignificant. To contrast, System.Random fails in single-digit GB on PractRand and only accrues more failures
+    /// as testing continues, across multiple test families. It also has a decent period of 2 to the 64 (which could be better than System.Random).
+    /// While it is fastest on x64 targets, it isn't especially slow on x86 either. The crucial weakness of Thrust and ThrustAlt is that they can't 
+    /// produce all possible outputs over their full period (2 to the 64 possible states correspond to less than 2 to the 64 outputs). This still doesn't
+    /// seem to hamper it in testing, however, and it may be good enough for a lot of usage.
     /// </summary>
     /// <remarks>
-    /// Usually a good replacement for System.Random due to drastically higher speed and period, as well as comparable or better quality,
+    /// Usually a good replacement for System.Random due to drastically higher speed (and possibly period), as well as significantly better quality,
     /// a loadable and settable state via snapshots, and various other useful features, like NextInt() for 32-bit random values, and Skip(long) to jump
     /// ahead or behind in its sequence. It has a period of 2 to the 64.
     /// </remarks>
-    public class PRNG5 : Random
+    public class TAPRNG : Random
     {
         public ulong State;
 
-        public PRNG5()
+        public TAPRNG()
             : this((ulong)RNG.GlobalRandom.Next() >> 5 ^ (ulong)RNG.GlobalRandom.Next() << 21 ^ (ulong)RNG.GlobalRandom.Next() << 42)
         {
         }
 
-        public PRNG5(ulong state)
+        public TAPRNG(ulong state)
         {
             State = state;
         }
@@ -1781,9 +1793,9 @@ namespace CSDS.Utilities
         /// Calling the same methods on this PRNG5 and its copy should produce the same values.
         /// </summary>
         /// <returns>a copy of this PRNG5</returns>
-        public PRNG5 Copy()
+        public TAPRNG Copy()
         {
-            return new PRNG5(State);
+            return new TAPRNG(State);
         }
     }
     /// <summary>
@@ -2037,6 +2049,17 @@ namespace CSDS.Utilities
             return new PRNG6(A, B, C, D);
         }
     }
+    /// <summary>
+    /// An unusual PRNG that mixes xoroshiro's algorithm (modified for 32-bit) and also incorporates a large-increment counter, with 96 bits of state.
+    /// It passes 32TB of testing in PractRand (unmodified xoroshiro fails even with 128 bits of state), and has a period of 0xFFFFFFFFFFFFFFFF00000000
+    /// (79228162514264337589248983040), or (2 to the 64 minus 1) times (2 to the 32). It does not offer a skip-ahead or skip-behind method.
+    /// </summary>
+    /// <remarks>
+    /// It currently isn't as fast as it should be on x86 targets, but is likely to improve if .NET Core 2 or later can be used (or some other version
+    /// of the CLR that uses RyuJIT on x86). This is because RyuJIT can optimize bitwise rotations (also called cyclic shifts or barrel shifts) into as
+    /// little as one SSE instruction, but the older JIT32 compiler can only treat them as two bitwise shifts and a bitwise or, which wrecks the
+    /// performance of OriolePRNG when JIT32 is used relative to RyuJIT.
+    /// </remarks>
     public class OriolePRNG : Random
     {
         public uint A, B, C;
@@ -2098,13 +2121,12 @@ namespace CSDS.Utilities
         public int NextInt()
         {
             uint s0 = A;
-            uint result = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            A = s0 ^ B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result);
-            return (int)(result + (C += 0x632BE5ABU));
+            uint s1 = B;
+            uint result = s0 + s1;
+            s1 ^= s0;
+            A = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (int)((result << 29 | result >> 3) + (C += 0x632BE5ABU));
         }
         /// <summary>
         /// Returns a pseudo-random long, which can be positive or negative and have any 64-bit value.
@@ -2113,20 +2135,16 @@ namespace CSDS.Utilities
         public long NextLong()
         {
             uint s0 = A;
-            uint result = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            s0 ^= B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result);
-            result += (C + 0x632BE5ABU);
-            uint result2 = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            A = s0 ^ B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result2);
-            return (long)(result2 + (C += 0xC657CB56U)) << 32 ^ result;
+            uint s1 = B;
+            uint high = s0 + s1;
+            s1 ^= s0;
+            uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            s1 = (s1 << 28 | s1 >> 4);
+            uint low = s00 + s1;
+            s1 ^= s00;
+            A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (long)((high << 29 | high >> 3) + (C + 0x632BE5ABU)) << 32 ^ ((low << 29 | low >> 3) + (C += 0xC657CB56U));
         }
         /// <summary>
         /// Returns a pseudo-random unsigned long, which can have any 64-bit value.
@@ -2135,20 +2153,16 @@ namespace CSDS.Utilities
         public ulong NextULong()
         {
             uint s0 = A;
-            uint result = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            s0 ^= B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result);
-            result += (C + 0x632BE5ABU);
-            uint result2 = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            A = s0 ^ B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result2);
-            return (ulong)(result2 + (C += 0xC657CB56U)) << 32 ^ result;
+            uint s1 = B;
+            uint high = s0 + s1;
+            s1 ^= s0;
+            uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            s1 = (s1 << 28 | s1 >> 4);
+            uint low = s00 + s1;
+            s1 ^= s00;
+            A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (ulong)((high << 29 | high >> 3) + (C + 0x632BE5ABU)) << 32 ^ ((low << 29 | low >> 3) + (C += 0xC657CB56U));
         }
 
         /// <summary>
@@ -2165,20 +2179,16 @@ namespace CSDS.Utilities
             for (; ; )
             {
                 uint s0 = A;
-                uint result = s0 + B;
-                B ^= s0;
-                MathExtensions.Rotate13(ref s0);
-                s0 ^= B ^ (B << 5);
-                MathExtensions.Rotate28(ref B);
-                MathExtensions.Rotate29(ref result);
-                result += (C + 0x632BE5ABU);
-                uint result2 = s0 + B;
-                B ^= s0;
-                MathExtensions.Rotate13(ref s0);
-                A = s0 ^ B ^ (B << 5);
-                MathExtensions.Rotate28(ref B);
-                MathExtensions.Rotate29(ref result2);
-                long bits = ((long)(result2 + (C += 0xC657CB56U)) << 32 ^ result) & 0x7fffffffffffffffL;
+                uint s1 = B;
+                uint high = s0 + s1;
+                s1 ^= s0;
+                uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+                s1 = (s1 << 28 | s1 >> 4);
+                uint low = s00 + s1;
+                s1 ^= s00;
+                A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+                B = (s1 << 28 | s1 >> 4);
+                long bits = ((long)((high << 29 | high >> 3) + (C + 0x632BE5ABU)) << 32 ^ ((low << 29 | low >> 3) + (C += 0xC657CB56U))) & 0x7fffffffffffffffL;
                 if (bits >= threshold)
                     return bits % maxValue;
             }
@@ -2202,13 +2212,12 @@ namespace CSDS.Utilities
         public override int Next()
         {
             uint s0 = A;
-            uint result = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            A = s0 ^ B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result);
-            return (int)(result + (C += 0x632BE5ABU)) & 0x7fffffff;
+            uint s1 = B;
+            uint result = s0 + s1;
+            s1 ^= s0;
+            A = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (int)((result << 29 | result >> 3) + (C += 0x632BE5ABU)) & 0x7fffffff;
         }
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which can be positive or negative.
@@ -2219,13 +2228,12 @@ namespace CSDS.Utilities
         public override int Next(int maxValue)
         {
             uint s0 = A;
-            uint result = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            A = s0 ^ B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result);
-            return (int)(((ulong)maxValue * (((result + (C += 0x632BE5ABU)) & 0x7FFFFFFFUL))) >> 31);
+            uint s1 = B;
+            uint result = s0 + s1;
+            s1 ^= s0;
+            A = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (int)(((ulong)maxValue * ((((result << 29 | result >> 3) + (C += 0x632BE5ABU)) & 0x7FFFFFFFUL))) >> 31);
         }
         /// <summary>
         /// Gets a random int that is between minValue (inclusive) and maxValue (exclusive); both can be positive or negative.
@@ -2252,13 +2260,12 @@ namespace CSDS.Utilities
             for (int i = 0; i < buffer.Length;)
             {
                 uint s0 = A;
-                uint result = s0 + B;
-                B ^= s0;
-                MathExtensions.Rotate13(ref s0);
-                A = s0 ^ B ^ (B << 5);
-                MathExtensions.Rotate28(ref B);
-                MathExtensions.Rotate29(ref result);
-                s = (result + (C += 0x632BE5ABU));
+                uint s1 = B;
+                uint result = s0 + s1;
+                s1 ^= s0;
+                A = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+                B = (s1 << 28 | s1 >> 4);
+                s = (result << 29 | result >> 3) + (C += 0x632BE5ABU);
                 for (int n = Math.Min(buffer.Length - i, 4); n-- > 0; s >>= 4)
                     buffer[i++] = (byte)s;
             }
@@ -2270,20 +2277,16 @@ namespace CSDS.Utilities
         public override double NextDouble()
         {
             uint s0 = A;
-            uint result = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            s0 ^= B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result);
-            result += (C + 0x632BE5ABU);
-            uint result2 = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            A = s0 ^ B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result2);
-            return (((ulong)(result2 + (C += 0xC657CB56U)) << 32 ^ result) & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
+            uint s1 = B;
+            uint high = s0 + s1;
+            s1 ^= s0;
+            uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            s1 = (s1 << 28 | s1 >> 4);
+            uint low = s00 + s1;
+            s1 ^= s00;
+            A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (((ulong)((high << 29 | high >> 3) + (C + 0x632BE5ABU)) << 32 ^ ((low << 29 | low >> 3) + (C += 0xC657CB56U))) & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
         }
         /// <summary>
         /// Gets a random double between -1.0 (exclusive) and 1.0 (exclusive).
@@ -2292,20 +2295,16 @@ namespace CSDS.Utilities
         public double NextSignedDouble()
         {
             uint s0 = A;
-            uint result = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            s0 ^= B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result);
-            result += (C + 0x632BE5ABU);
-            uint result2 = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            A = s0 ^ B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result2);
-            return (((long)(result2 + (C += 0xC657CB56U)) << 32 ^ result) >> 11) * 1.1102230246251565E-16;
+            uint s1 = B;
+            uint high = s0 + s1;
+            s1 ^= s0;
+            uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            s1 = (s1 << 28 | s1 >> 4);
+            uint low = s00 + s1;
+            s1 ^= s00;
+            A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (((long)((high << 29 | high >> 3) + (C + 0x632BE5ABU)) << 32 ^ ((low << 29 | low >> 3) + (C += 0xC657CB56U))) >> 11) * 1.1102230246251565E-16;
         }
         /// <summary>
         /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
@@ -2317,20 +2316,16 @@ namespace CSDS.Utilities
         protected override double Sample()
         {
             uint s0 = A;
-            uint result = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            s0 ^= B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result);
-            result += (C + 0x632BE5ABU);
-            uint result2 = s0 + B;
-            B ^= s0;
-            MathExtensions.Rotate13(ref s0);
-            A = s0 ^ B ^ (B << 5);
-            MathExtensions.Rotate28(ref B);
-            MathExtensions.Rotate29(ref result2);
-            return (((ulong)(result2 + (C += 0xC657CB56U)) << 32 ^ result) & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
+            uint s1 = B;
+            uint high = s0 + s1;
+            s1 ^= s0;
+            uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            s1 = (s1 << 28 | s1 >> 4);
+            uint low = s00 + s1;
+            s1 ^= s00;
+            A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (((ulong)((high << 29 | high >> 3) + (C + 0x632BE5ABU)) << 32 ^ ((low << 29 | low >> 3) + (C += 0xC657CB56U))) & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
         }
         /// <summary>
         /// Returns a new PRNG7 using the same algorithm and a copy of the internal state this uses.

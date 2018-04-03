@@ -88,6 +88,23 @@ namespace CSDS_Test
                 }
             }
             */
+
+
+            {
+                OriolePRNG oriole = new OriolePRNG(987654321);
+                for (int n = 0; n < 4; n++)
+                {
+                    sumi = 0;
+                    stopwatch.Restart();
+                    for (int i = 0; i < 1000000007; i++)
+                    {
+                        sumi += oriole.Next();
+                    }
+                    stopwatch.Stop();
+                    Console.WriteLine("{0}\nOriolePRNG done in {1}", sumi, stopwatch.Elapsed);
+                }
+            }
+
             {
                 Random rdm = new Random(123456);
                 for(int n = 0; n < 4; n++)
@@ -104,66 +121,66 @@ namespace CSDS_Test
             }
 
 
-            {
-                PRNG4 p4 = new PRNG4(987654321);
-                for(int n = 0; n < 4; n++)
-                {
-                    sumi = 0;
-                    stopwatch.Restart();
-                    for(int i = 0; i < 1000000007; i++)
-                    {
-                        sumi += p4.Next();
-                    }
-                    stopwatch.Stop();
-                    Console.WriteLine("{0}\nPRNG4 done in {1}", sumi, stopwatch.Elapsed);
-                }
-            }
+            //{
+            //    PRNG4 p4 = new PRNG4(987654321);
+            //    for (int n = 0; n < 4; n++)
+            //    {
+            //        sumi = 0;
+            //        stopwatch.Restart();
+            //        for (int i = 0; i < 1000000007; i++)
+            //        {
+            //            sumi += p4.Next();
+            //        }
+            //        stopwatch.Stop();
+            //        Console.WriteLine("{0}\nPRNG4 done in {1}", sumi, stopwatch.Elapsed);
+            //    }
+            //}
 
 
-            {
-                PRNG2 p2 = new PRNG2(987654321);
-                for(int n = 0; n < 4; n++)
-                {
-                    sumi = 0;
-                    stopwatch.Restart();
-                    for(int i = 0; i < 1000000007; i++)
-                    {
-                        sumi += p2.Next();
-                    }
-                    stopwatch.Stop();
-                    Console.WriteLine("{0}\nPRNG2 done in {1}", sumi, stopwatch.Elapsed);
-                }
-            }
+            //{
+            //    PRNG2 p2 = new PRNG2(987654321);
+            //    for(int n = 0; n < 4; n++)
+            //    {
+            //        sumi = 0;
+            //        stopwatch.Restart();
+            //        for(int i = 0; i < 1000000007; i++)
+            //        {
+            //            sumi += p2.Next();
+            //        }
+            //        stopwatch.Stop();
+            //        Console.WriteLine("{0}\nPRNG2 done in {1}", sumi, stopwatch.Elapsed);
+            //    }
+            //}
 
-            {
-                PRNG3 p3 = new PRNG3(987654321);
-                for(int n = 0; n < 4; n++)
-                {
-                    sumi = 0;
-                    stopwatch.Restart();
-                    for(int i = 0; i < 1000000007; i++)
-                    {
-                        sumi += p3.Next();
-                    }
-                    stopwatch.Stop();
-                    Console.WriteLine("{0}\nPRNG3 done in {1}", sumi, stopwatch.Elapsed);
-                }
-            }
+            //{
+            //    PRNG3 p3 = new PRNG3(987654321);
+            //    for(int n = 0; n < 4; n++)
+            //    {
+            //        sumi = 0;
+            //        stopwatch.Restart();
+            //        for(int i = 0; i < 1000000007; i++)
+            //        {
+            //            sumi += p3.Next();
+            //        }
+            //        stopwatch.Stop();
+            //        Console.WriteLine("{0}\nPRNG3 done in {1}", sumi, stopwatch.Elapsed);
+            //    }
+            //}
 
-            {
-                PRNG p = new PRNG(123456789);
-                for(int n = 0; n < 4; n++)
-                {
-                    sumi = 0;
-                    stopwatch.Restart();
-                    for(int i = 0; i < 1000000007; i++)
-                    {
-                        sumi += p.Next();
-                    }
-                    stopwatch.Stop();
-                    Console.WriteLine("{0}\nPRNG done in {1}", sumi, stopwatch.Elapsed);
-                }
-            }
+            //{
+            //    PRNG p = new PRNG(123456789);
+            //    for(int n = 0; n < 4; n++)
+            //    {
+            //        sumi = 0;
+            //        stopwatch.Restart();
+            //        for(int i = 0; i < 1000000007; i++)
+            //        {
+            //            sumi += p.Next();
+            //        }
+            //        stopwatch.Stop();
+            //        Console.WriteLine("{0}\nPRNG done in {1}", sumi, stopwatch.Elapsed);
+            //    }
+            //}
         }
     }
 }

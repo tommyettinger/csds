@@ -39,7 +39,7 @@ namespace CSDS_Test
             //    Console.Write(' ');
             //}
 
-            PRNG5 rng = new PRNG5(1337);
+            TAPRNG rng = new TAPRNG(1337);
             for (int i = 0; i < count; i++)
             {
                 int idx1 = rng.Next(-count, count), idx2 = rng.Next(-count, count);

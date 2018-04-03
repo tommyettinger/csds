@@ -14,10 +14,10 @@ namespace CSDS_Test
     {
         private readonly Random rdm = new Random(123456);
         private readonly PRNG p1 = new PRNG(123456);
-        private readonly PRNG2 p2 = new PRNG2(123456);
-        private readonly PRNG3 p3 = new PRNG3(123456);
+        private readonly SplitMixPRNG splitmix = new SplitMixPRNG(123456);
+        private readonly ThrustPRNG p3 = new ThrustPRNG(123456);
         private readonly PRNG4 p4 = new PRNG4(123456);
-        private readonly PRNG5 p5 = new PRNG5(123456);
+        private readonly TAPRNG ta = new TAPRNG(123456);
         private readonly PRNG6 p6 = new PRNG6(123456);
         private readonly OriolePRNG oriole = new OriolePRNG(123456);
 
@@ -28,18 +28,18 @@ namespace CSDS_Test
         public long TestR() => rdm.Next();
         //[Benchmark]
         public long TestP1() => p1.Next();
-        //[Benchmark]
-        public long TestP2() => p2.Next();
         [Benchmark]
+        public long TestSplitMix() => splitmix.Next();
+        //[Benchmark]
         public long TestP3() => p3.Next();
         //[Benchmark]
         public long TestP4() => p4.Next();
         [Benchmark]
-        public long TestP5() => p5.Next();
+        public long TestTA() => ta.Next();
         //[Benchmark]
         public long TestP6() => p6.Next();
         [Benchmark]
-        public long TestP7() => oriole.Next();
+        public long TestOriole() => oriole.Next();
     }
     public class OrderedCollectionBenchmarks
     {
