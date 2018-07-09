@@ -1789,18 +1789,18 @@ namespace CSDS.Utilities
             return (((s ^ (s >> 22))) & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
         }
         /// <summary>
-        /// Returns a new PRNG5 using the same algorithm and a copy of the internal state this uses.
-        /// Calling the same methods on this PRNG5 and its copy should produce the same values.
+        /// Returns a new TAPRNG using the same algorithm and a copy of the internal state this uses.
+        /// Calling the same methods on this TAPRNG and its copy should produce the same values.
         /// </summary>
-        /// <returns>a copy of this PRNG5</returns>
+        /// <returns>a copy of this TAPRNG</returns>
         public TAPRNG Copy()
         {
             return new TAPRNG(State);
         }
     }
     /// <summary>
-    /// Not recommended; speed is mediocre compared to PRNG5 or PRNG3, and while the period is fairly good (at least 2 to the 64, possibly much higher), the statistical quality isn't as good.
-    /// Quality starts off very high but trails to "mildly suspicious" before PRNG5 does, at 32TB (PRNG5 doesn't have any suspicious results in 32TB of testing with PractRand).
+    /// Not recommended; speed is mediocre compared to TAPRNG or PRNG3, and while the period is fairly good (at least 2 to the 64, possibly much higher), the statistical quality isn't as good.
+    /// Quality starts off very high but trails to "mildly suspicious" before TAPRNG does, at 32TB (TAPRNG doesn't have any suspicious results in 32TB of testing with PractRand).
     /// This is often a sign that the generator will fail soon after.
     /// </summary>
     public class PRNG6 : Random
@@ -2110,7 +2110,7 @@ namespace CSDS.Utilities
         public byte[] GetSnapshot()
         {
             byte[] snap = new byte[12];
-            Buffer.BlockCopy(new ulong[] { A, B, C }, 0, snap, 0, 12);
+            Buffer.BlockCopy(new uint[] { A, B, C }, 0, snap, 0, 12);
             return snap;
         }
 
@@ -2335,6 +2335,738 @@ namespace CSDS.Utilities
         public OriolePRNG Copy()
         {
             return new OriolePRNG(A, B, C);
+        }
+        /// <summary>
+        /// Given any uint called state, this produces a unique uint that should seem to have no relation to state.
+        /// </summary>
+        /// <param name="state">any uint</param>
+        /// <returns>any uint</returns>
+        public static uint Determine(uint state)
+        {
+            state = ((state *= 0x9E3779B9U) ^ (state >> 16)) * 0x85EBCA6BU;
+            state = (state ^ (state >> 13)) * 0xC2B2AE35U;
+            return state ^ (state >> 16);
+        }
+    }
+    /// <summary>
+    /// </summary>
+    /// <remarks>
+    /// </remarks>
+    public class LinnormPRNG : Random
+    {
+        public ulong State;
+
+        public LinnormPRNG()
+            : this((ulong)RNG.GlobalRandom.Next() >> 5 ^ (ulong)RNG.GlobalRandom.Next() << 21 ^ (ulong)RNG.GlobalRandom.Next() << 42)
+        {
+        }
+
+        public LinnormPRNG(ulong state)
+        {
+            State = state;
+        }
+
+        public void FromSnapshot(byte[] snapshot)
+        {
+            if (snapshot == null)
+                throw new ArgumentNullException("snapshot");
+            if (snapshot.Length < 8)
+                State = (ulong)(-1L - snapshot.LongLength * 421L);
+            else
+                State = BitConverter.ToUInt64(snapshot, 0);
+        }
+
+        public byte[] GetSnapshot()
+        {
+            return BitConverter.GetBytes(State);
+        }
+        /// <summary>
+        /// Returns a pseudo-random int, which can be positive or negative and have any 32-bit value.
+        /// </summary>
+        /// <returns>any int, all 32 bits are pseudo-random</returns>
+        public int NextInt()
+        {
+            ulong z = (State = State * 0x41C64E6DUL + 1UL);
+            z = (z ^ z >> 27) * 0xAEF17502108EF2D9UL;
+            return (int)(z ^ z >> 25);
+
+        }
+        /// <summary>
+        /// Returns a pseudo-random long, which can be positive or negative and have any 64-bit value.
+        /// </summary>
+        /// <returns>any long, all 64 bits are pseudo-random</returns>
+        public long NextLong()
+        {
+            ulong z = (State = State * 0x41C64E6DUL + 1UL);
+            z = (z ^ z >> 27) * 0xAEF17502108EF2D9UL;
+            return (long)(z ^ z >> 25);
+        }
+        /// <summary>
+        /// Returns a pseudo-random unsigned long, which can have any 64-bit value.
+        /// </summary>
+        /// <returns>any ulong, all 64 bits are pseudo-random</returns>
+        public ulong NextULong()
+        {
+            ulong z = (State = State * 0x41C64E6DUL + 1UL);
+            z = (z ^ z >> 27) * 0xAEF17502108EF2D9UL;
+            return z ^ z >> 25;
+        }
+
+        public static ulong Determine(ulong state)
+        {
+            return (state = ((state = (((state * 0x632BE59BD9B4E019UL) ^ 0x9E3779B97F4A7C15UL) * 0xC6BC279692B5CC83UL)) ^ state >> 27) * 0xAEF17502108EF2D9UL) ^ state >> 25;
+        }
+
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
+        /// positive (if it is 0 or less, this simply returns 0).
+        /// </summary>
+        /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
+        /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
+
+        public long NextLong(long maxValue)
+        {
+            if (maxValue <= 0) return 0;
+            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
+            for (; ; )
+            {
+                long bits = NextLong() & 0x7fffffffffffffffL;
+                if (bits >= threshold)
+                    return bits % maxValue;
+            }
+        }
+        /// <summary>
+        /// Gets a random long that is between minValue (inclusive) and maxValue (exclusive);
+        /// both should be positive and minValue should be less than maxValue.
+        /// </summary>
+        /// <param name="minValue">the lower bound as a long, inclusive</param>
+        /// <param name="maxValue">the upper bound as a long, exclusive</param>
+        /// <returns></returns>
+        public long NextLong(long minValue, long maxValue)
+        {
+            return NextLong(maxValue - minValue) + minValue;
+        }
+
+        /// <summary>
+        /// Returns a positive pseudo-random int, which can have any 31-bit positive value.
+        /// </summary>
+        /// <returns>any random positive int, all but the sign bit are pseudo-random</returns>
+        public override int Next()
+        {
+            ulong z = (State = State * 0x41C64E6DUL + 1UL);
+            z = (z ^ z >> 27) * 0xAEF17502108EF2D9UL;
+            return (int)(z ^ z >> 25) & 0x7fffffff;
+        }
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which can be positive or negative.
+        /// </summary>
+        /// <remarks>Based on code by Daniel Lemire, http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/ </remarks>
+        /// <param name="maxValue"></param>
+        /// <returns></returns>
+        public override int Next(int maxValue)
+        {
+            return (int)(((ulong)maxValue * (NextULong() & 0x7FFFFFFFUL)) >> 31);
+        }
+        /// <summary>
+        /// Gets a random int that is between minValue (inclusive) and maxValue (exclusive); both can be positive or negative.
+        /// </summary>
+        /// <param name="minValue">the inner bound as an int, inclusive</param>
+        /// <param name="maxValue">the outer bound as an int, exclusive</param>
+        /// <returns></returns>
+        public override int Next(int minValue, int maxValue)
+        {
+            return Next(maxValue - minValue) + minValue;
+        }
+        /// <summary>
+        /// Fills buffer with random values, from its start to its end.
+        /// </summary>
+        /// <remarks>
+        /// Based on reference code in the documentation for java.util.Random.
+        /// </remarks>
+        /// <param name="buffer">a non-null byte array that will be modified</param>
+        public override void NextBytes(byte[] buffer)
+        {
+            if (buffer == null)
+                throw new ArgumentNullException("buffer");
+            for (int i = 0; i < buffer.Length;)
+            {
+                ulong s = NextULong();
+                for (int n = Math.Min(buffer.Length - i, 8); n-- > 0; s >>= 8)
+                    buffer[i++] = (byte)s;
+            }
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        public override double NextDouble()
+        {
+            return (NextULong() & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Gets a random double between -1.0 (exclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <returns>a pseudo-random double between -1.0 exclusive and 1.0 exclusive</returns>
+        public double NextSignedDouble()
+        {
+            return (NextLong() >> 11) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <remarks>
+        /// The same code as NextDouble().
+        /// </remarks>
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        protected override double Sample()
+        {
+            return (NextULong() & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Returns a new LinnormPRNG using the same algorithm and a copy of the internal state this uses.
+        /// Calling the same methods on this LinnormPRNG and its copy should produce the same values.
+        /// </summary>
+        /// <returns>a copy of this LinnormPRNG</returns>
+        public LinnormPRNG Copy()
+        {
+            return new LinnormPRNG(State);
+        }
+    }
+    /// <summary>
+    /// A 32-bit class that uses a mix of ThrustAlt's algorithm with a Marsaglia triple-XorShift generator to get higher quality with 32-bit math.
+    /// This has a period of <code>Math.Pow(2, 64) - Math.Pow(2, 32)</code>, and will produce each 32-bit result <code>Math.Pow(2, 32) - 1</code>
+    /// times over the course of its period.
+    /// </summary>
+    public class XTPRNG : Random
+    {
+        public uint State, Stream;
+
+        public XTPRNG()
+            : this(RNG.GlobalRandom.Next() >> 5 ^ RNG.GlobalRandom.Next() << 11, RNG.GlobalRandom.Next() >> 5 ^ RNG.GlobalRandom.Next() << 11)
+        {
+        }
+
+        public XTPRNG(int state)
+        {
+            State = (uint)state;
+            Stream = (State ^ 0xC74EAD55u) * 0x947E3DB3u;
+            if (Stream == 0) Stream = 1u;
+        }
+
+        public XTPRNG(int state, int stream)
+        {
+            State = (uint)state;
+            if (stream == 0) Stream = 1u;
+            else Stream = (uint)stream;
+        }
+
+        public XTPRNG(uint state, uint stream)
+        {
+            State = state;
+            if (stream == 0u) Stream = 1u;
+            else Stream = stream;
+        }
+
+        public void FromSnapshot(byte[] snapshot)
+        {
+            if (snapshot == null)
+                throw new ArgumentNullException("snapshot");
+            if (snapshot.Length < 8)
+            {
+                State = (uint)(-1L - snapshot.Length * 421);
+                Stream = State << 3 | 5u;
+            }
+            else
+            {
+                State = BitConverter.ToUInt32(snapshot, 0);
+                Stream = BitConverter.ToUInt32(snapshot, 4);
+            }
+        }
+
+        public byte[] GetSnapshot()
+        {
+            return
+                (BitConverter.IsLittleEndian)
+                ? BitConverter.GetBytes(State | ((ulong)Stream << 32))
+                : BitConverter.GetBytes(Stream | ((ulong)State << 32));
+        }
+        /// <summary>
+        /// Returns a pseudo-random int, which can be positive or negative and have any 32-bit value.
+        /// </summary>
+        /// <returns>any int, all 32 bits are pseudo-random</returns>
+        public int NextInt()
+        {
+            Stream ^= Stream >> 6;
+            uint s = (State += 0x6C8E9CF5u);
+            uint z = (s ^ (s >> 13)) * ((Stream ^= Stream << 1) | 1u);
+            return (int)((z ^ z >> 11) + (Stream ^= Stream >> 11));
+        }
+        /// <summary>
+        /// Returns a pseudo-random uint, which can have any unsigned 32-bit value.
+        /// </summary>
+        /// <returns>any uint, all 32 bits are pseudo-random</returns>
+        public uint NextUInt()
+        {
+            Stream ^= Stream >> 6;
+            uint s = (State += 0x6C8E9CF5u);
+            uint z = (s ^ (s >> 13)) * ((Stream ^= Stream << 1) | 1u);
+            return ((z ^ z >> 11) + (Stream ^= Stream >> 11));
+        }
+        /// <summary>
+        /// Returns a pseudo-random long, which can be positive or negative and have any 64-bit value.
+        /// </summary>
+        /// <returns>any long, all 64 bits are pseudo-random</returns>
+        public long NextLong()
+        {
+            Stream ^= Stream >> 6;
+            uint t = (State += 0xD91D39EA), s = (t - 0x6C8E9CF5);
+            uint z = (s ^ (s >> 13)) * ((Stream ^= Stream << 1) | 1);
+            ulong hi = (z ^ z >> 11) + (Stream ^= Stream >> 11);
+            Stream ^= Stream >> 6;
+            uint lo = (t ^ (t >> 13)) * ((Stream ^= Stream << 1) | 1);
+            return (long)(((lo ^ lo >> 11) + (Stream ^= Stream >> 11)) ^ hi << 32);
+        }
+        /// <summary>
+        /// Returns a pseudo-random unsigned long, which can have any 64-bit value.
+        /// </summary>
+        /// <returns>any ulong, all 64 bits are pseudo-random</returns>
+        public ulong NextULong()
+        {
+            Stream ^= Stream >> 6;
+            uint t = (State += 0xD91D39EA), s = (t - 0x6C8E9CF5);
+            uint z = (s ^ (s >> 13)) * ((Stream ^= Stream << 1) | 1);
+            ulong hi = (z ^ z >> 11) + (Stream ^= Stream >> 11);
+            Stream ^= Stream >> 6;
+            uint lo = (t ^ (t >> 13)) * ((Stream ^= Stream << 1) | 1);
+            return (((lo ^ lo >> 11) + (Stream ^= Stream >> 11)) ^ hi << 32);
+        }
+
+ 
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
+        /// positive (if it is 0 or less, this simply returns 0).
+        /// </summary>
+        /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
+        /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
+
+        public long NextLong(long maxValue)
+        {
+            if (maxValue <= 0) return 0;
+            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
+            for (; ; )
+            {
+                long bits = NextLong() & 0x7fffffffffffffffL;
+                if (bits >= threshold)
+                    return bits % maxValue;
+            }
+        }
+        /// <summary>
+        /// Gets a random long that is between minValue (inclusive) and maxValue (exclusive);
+        /// both should be positive and minValue should be less than maxValue.
+        /// </summary>
+        /// <param name="minValue">the lower bound as a long, inclusive</param>
+        /// <param name="maxValue">the upper bound as a long, exclusive</param>
+        /// <returns></returns>
+        public long NextLong(long minValue, long maxValue)
+        {
+            return NextLong(maxValue - minValue) + minValue;
+        }
+
+        /// <summary>
+        /// Returns a positive pseudo-random int, which can have any 31-bit positive value.
+        /// </summary>
+        /// <returns>any random positive int, all but the sign bit are pseudo-random</returns>
+        public override int Next()
+        {
+            Stream ^= Stream >> 6;
+            uint s = (State += 0x6C8E9CF5u);
+            uint z = (s ^ (s >> 13)) * ((Stream ^= Stream << 1) | 1u);
+            return (int)((z ^ z >> 11) + (Stream ^= Stream >> 11)) & 0x7fffffff;
+        }
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which can be positive or negative.
+        /// </summary>
+        /// <remarks>Based on code by Daniel Lemire, http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/ </remarks>
+        /// <param name="maxValue"></param>
+        /// <returns></returns>
+        public override int Next(int maxValue)
+        {
+            return (int)(((ulong)maxValue * (NextUInt() & 0x7FFFFFFFUL)) >> 31);
+        }
+        /// <summary>
+        /// Gets a random int that is between minValue (inclusive) and maxValue (exclusive); both can be positive or negative.
+        /// </summary>
+        /// <param name="minValue">the inner bound as an int, inclusive</param>
+        /// <param name="maxValue">the outer bound as an int, exclusive</param>
+        /// <returns></returns>
+        public override int Next(int minValue, int maxValue)
+        {
+            return Next(maxValue - minValue) + minValue;
+        }
+        /// <summary>
+        /// Fills buffer with random values, from its start to its end.
+        /// </summary>
+        /// <remarks>
+        /// Based on reference code in the documentation for java.util.Random.
+        /// </remarks>
+        /// <param name="buffer">a non-null byte array that will be modified</param>
+        public override void NextBytes(byte[] buffer)
+        {
+            if (buffer == null)
+                throw new ArgumentNullException("buffer");
+            for (int i = 0; i < buffer.Length;)
+            {
+                uint s = NextUInt();
+                for (int n = Math.Min(buffer.Length - i, 4); n-- > 0; s >>= 4)
+                    buffer[i++] = (byte)s;
+            }
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        public override double NextDouble()
+        {
+            return (NextULong() & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Gets a random double between -1.0 (exclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <returns>a pseudo-random double between -1.0 exclusive and 1.0 exclusive</returns>
+        public double NextSignedDouble()
+        {
+            return (NextLong() >> 11) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <remarks>
+        /// The same code as NextDouble().
+        /// </remarks>
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        protected override double Sample()
+        {
+            return (NextULong() & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Returns a new XTPRNG using the same algorithm and a copy of the internal state this uses.
+        /// Calling the same methods on this XTPRNG and its copy should produce the same values.
+        /// </summary>
+        /// <returns>a copy of this XTPRNG</returns>
+        public XTPRNG Copy()
+        {
+            return new XTPRNG(State, Stream);
+        }
+    }
+    /// <summary>
+    /// A PRNG that uses xoroshiro's algorithm (modified for 32-bit) and adjusts its output with the "++" scrambler from Vigna and Blackman's paper introducing
+    /// the xoshiro family of generators. This is the fastest generator here when producing 32-bit output, but it will lag behind LinnormPRNG on 64-bit output.
+    /// It passes 32TB of testing in PractRand (xoroshiro128+ fails even with 128 bits of state), and has a period of 0xFFFFFFFFFFFFFFFF, or (2 to the 64 minus 1).
+    /// It does not offer a skip-ahead or skip-behind method. It is fast on both x86 and x64 targets, in part because x64's RyuJIT can optimize it thoroughly.
+    /// </summary>
+    /// <remarks>
+    /// It currently isn't as fast as it should be on x86 targets, but is likely to improve if .NET Core 2 or later can be used (or some other version
+    /// of the CLR that uses RyuJIT on x86). This is because RyuJIT can optimize bitwise rotations (also called cyclic shifts or barrel shifts) into as
+    /// little as one SSE instruction, but the older JIT32 compiler can only treat them as two bitwise shifts and a bitwise or, which worsens the
+    /// performance of LathePRNG when JIT32 is used relative to RyuJIT. It's still the fastest (with high quality) without this optimization, though.
+    /// </remarks>
+    public class LathePRNG : Random
+    {
+        public uint A, B;
+
+        public LathePRNG()
+            : this((uint)RNG.GlobalRandom.Next() >> 5 ^ (uint)RNG.GlobalRandom.Next() << 17,
+                  (uint)RNG.GlobalRandom.Next() >> 7 ^ (uint)RNG.GlobalRandom.Next() << 15)
+        {
+        }
+
+        public LathePRNG(ulong state)
+        {
+            if (state == 0UL)
+                A = 1U;
+            else
+                A = (uint)(state & 0xFFFFFFFFUL);
+            B = (uint)(state >> 32);
+        }
+
+        public LathePRNG(uint a, uint b)
+        {
+            A = a;
+            B = b;
+        }
+
+        public void FromSnapshot(byte[] snapshot)
+        {
+            if (snapshot == null)
+                throw new ArgumentNullException("snapshot");
+            if (snapshot.Length < 8)
+            {
+                A = (uint)(-1L - snapshot.Length * 421);
+                B = Determine(A+1);
+            }
+            else
+            {
+                A = BitConverter.ToUInt32(snapshot, 0);
+                B = BitConverter.ToUInt32(snapshot, 4);
+            }
+        }
+
+        public void SetState(ulong state)
+        {
+            if (state == 0UL)
+                A = 1u;
+            else
+                A = (uint)(state & 0xFFFFFFFFUL);
+            B = (uint)(state >> 32);
+        }
+        public ulong GetState()
+        {
+            return A | ((ulong)B << 32);
+        }
+
+        public byte[] GetSnapshot()
+        {
+            return
+                (BitConverter.IsLittleEndian)
+                ? BitConverter.GetBytes(A | ((ulong)B << 32))
+                : BitConverter.GetBytes(A | ((ulong)B << 32));
+        }
+
+        /// <summary>
+        /// Returns a pseudo-random int, which can be positive or negative and have any 32-bit value.
+        /// </summary>
+        /// <returns>any int, all 32 bits are pseudo-random</returns>
+        public int NextInt()
+        {
+            uint s0 = A;
+            uint s1 = B;
+            uint result = s0 + s1;
+            s1 ^= s0;
+            A = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (int)((result << 10 | result >> 22) + s0);
+        }
+        /// <summary>
+        /// Returns a pseudo-random uint, which can have any 32-bit value.
+        /// </summary>
+        /// <returns>any uint, all 32 bits are pseudo-random</returns>
+        public uint NextUInt()
+        {
+            uint s0 = A;
+            uint s1 = B;
+            uint result = s0 + s1;
+            s1 ^= s0;
+            A = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return ((result << 10 | result >> 22) + s0);
+        }
+        /// <summary>
+        /// Returns a pseudo-random long, which can be positive or negative and have any 64-bit value.
+        /// </summary>
+        /// <returns>any long, all 64 bits are pseudo-random</returns>
+        public long NextLong()
+        {
+            uint s0 = A;
+            uint s1 = B;
+            uint high = s0 + s1;
+            s1 ^= s0;
+            uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            s1 = (s1 << 28 | s1 >> 4);
+            uint low = s00 + s1;
+            s1 ^= s00;
+            A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (long)((high << 10 | high >> 22) + s0) << 32 ^ ((low << 10 | low >> 22) + s00);
+        }
+        /// <summary>
+        /// Returns a pseudo-random unsigned long, which can have any 64-bit value.
+        /// </summary>
+        /// <returns>any ulong, all 64 bits are pseudo-random</returns>
+        public ulong NextULong()
+        {
+            uint s0 = A;
+            uint s1 = B;
+            uint high = s0 + s1;
+            s1 ^= s0;
+            uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            s1 = (s1 << 28 | s1 >> 4);
+            uint low = s00 + s1;
+            s1 ^= s00;
+            A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (ulong)((high << 10 | high >> 22) + s0) << 32 ^ ((low << 10 | low >> 22) + s00);
+        }
+
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
+        /// positive (if it is 0 or less, this simply returns 0).
+        /// </summary>
+        /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
+        /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
+
+        public long NextLong(long maxValue)
+        {
+            if (maxValue <= 0) return 0;
+            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
+            for (; ; )
+            {
+                uint s0 = A;
+                uint s1 = B;
+                uint high = s0 + s1;
+                s1 ^= s0;
+                uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+                s1 = (s1 << 28 | s1 >> 4);
+                uint low = s00 + s1;
+                s1 ^= s00;
+                A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+                B = (s1 << 28 | s1 >> 4);
+                long bits = ((long)((high << 10 | high >> 22) + s0) << 32 ^ ((low << 10 | low >> 22) + s00)) & 0x7fffffffffffffffL;
+                if (bits >= threshold)
+                    return bits % maxValue;
+            }
+        }
+        /// <summary>
+        /// Gets a random long that is between minValue (inclusive) and maxValue (exclusive);
+        /// both should be positive and minValue should be less than maxValue.
+        /// </summary>
+        /// <param name="minValue">the lower bound as a long, inclusive</param>
+        /// <param name="maxValue">the upper bound as a long, exclusive</param>
+        /// <returns></returns>
+        public long NextLong(long minValue, long maxValue)
+        {
+            return NextLong(maxValue - minValue) + minValue;
+        }
+
+        /// <summary>
+        /// Returns a positive pseudo-random int, which can have any 31-bit positive value.
+        /// </summary>
+        /// <returns>any random positive int, all but the sign bit are pseudo-random</returns>
+        public override int Next()
+        {
+            uint s0 = A;
+            uint s1 = B;
+            uint result = s0 + s1;
+            s1 ^= s0;
+            A = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (int)((result << 10 | result >> 22) + s0) & 0x7fffffff;
+        }
+        /// <summary>
+        /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which can be positive or negative.
+        /// </summary>
+        /// <remarks>Based on code by Daniel Lemire, http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/ </remarks>
+        /// <param name="maxValue"></param>
+        /// <returns></returns>
+        public override int Next(int maxValue)
+        {
+            uint s0 = A;
+            uint s1 = B;
+            uint result = s0 + s1;
+            s1 ^= s0;
+            A = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (int)(((ulong)maxValue * ((((result << 10 | result >> 22) + s0) & 0x7FFFFFFFUL))) >> 31);
+        }
+        /// <summary>
+        /// Gets a random int that is between minValue (inclusive) and maxValue (exclusive); both can be positive or negative.
+        /// </summary>
+        /// <param name="minValue">the inner bound as an int, inclusive</param>
+        /// <param name="maxValue">the outer bound as an int, exclusive</param>
+        /// <returns></returns>
+        public override int Next(int minValue, int maxValue)
+        {
+            return Next(maxValue - minValue) + minValue;
+        }
+        /// <summary>
+        /// Fills buffer with random values, from its start to its end.
+        /// </summary>
+        /// <remarks>
+        /// Based on reference code in the documentation for java.util.Random.
+        /// </remarks>
+        /// <param name="buffer">a non-null byte array that will be modified</param>
+        public override void NextBytes(byte[] buffer)
+        {
+            if (buffer == null)
+                throw new ArgumentNullException("buffer");
+            uint s;
+            for (int i = 0; i < buffer.Length;)
+            {
+                uint s0 = A;
+                uint s1 = B;
+                uint result = s0 + s1;
+                s1 ^= s0;
+                A = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+                B = (s1 << 28 | s1 >> 4);
+                s = ((result << 10 | result >> 22) + s0);
+                for (int n = Math.Min(buffer.Length - i, 4); n-- > 0; s >>= 4)
+                    buffer[i++] = (byte)s;
+            }
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        public override double NextDouble()
+        {
+            uint s0 = A;
+            uint s1 = B;
+            uint high = s0 + s1;
+            s1 ^= s0;
+            uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            s1 = (s1 << 28 | s1 >> 4);
+            uint low = s00 + s1;
+            s1 ^= s00;
+            A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (((ulong)((high << 10 | high >> 22) + s0) << 32 ^ ((low << 10 | low >> 22) + s00)) & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Gets a random double between -1.0 (exclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <returns>a pseudo-random double between -1.0 exclusive and 1.0 exclusive</returns>
+        public double NextSignedDouble()
+        {
+            uint s0 = A;
+            uint s1 = B;
+            uint high = s0 + s1;
+            s1 ^= s0;
+            uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            s1 = (s1 << 28 | s1 >> 4);
+            uint low = s00 + s1;
+            s1 ^= s00;
+            A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (((ulong)((high << 10 | high >> 22) + s0) << 32 ^ ((low << 10 | low >> 22) + s00)) >> 11) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Gets a random double between 0.0 (inclusive) and 1.0 (exclusive).
+        /// </summary>
+        /// <remarks>
+        /// The same code as NextDouble().
+        /// </remarks>
+        /// <returns>a pseudo-random double between 0.0 inclusive and 1.0 exclusive</returns>
+        protected override double Sample()
+        {
+            uint s0 = A;
+            uint s1 = B;
+            uint high = s0 + s1;
+            s1 ^= s0;
+            uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
+            s1 = (s1 << 28 | s1 >> 4);
+            uint low = s00 + s1;
+            s1 ^= s00;
+            A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
+            B = (s1 << 28 | s1 >> 4);
+            return (((ulong)((high << 10 | high >> 22) + s0) << 32 ^ ((low << 10 | low >> 22) + s00)) & 0x1FFFFFFFFFFFFFUL) * 1.1102230246251565E-16;
+        }
+        /// <summary>
+        /// Returns a new PRNG7 using the same algorithm and a copy of the internal state this uses.
+        /// Calling the same methods on this PRNG7 and its copy should produce the same values.
+        /// </summary>
+        /// <returns>a copy of this PRNG7</returns>
+        public LathePRNG Copy()
+        {
+            return new LathePRNG(A, B);
         }
         /// <summary>
         /// Given any uint called state, this produces a unique uint that should seem to have no relation to state.
