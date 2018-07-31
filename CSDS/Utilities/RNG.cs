@@ -67,20 +67,34 @@ namespace CSDS.Utilities
         }
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
-        /// positive (if it is 0 or less, this simply returns 0).
+        /// positive (if it is 1 or less, this simply returns 0).
         /// </summary>
+        /// <remarks>Credit to user craigster0 from https://stackoverflow.com/a/28904636 for the code this uses, which gets the high 64 bits of a 64-by-64-bit multiplication.</remarks>
         /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
         /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
 
         public long NextLong(long maxValue)
         {
-            if(maxValue <= 0) return 0;
-            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
-            for(;;)
+            if (maxValue <= 1L)
+                return 0L;
+            unchecked
             {
-                long bits = Rand.Next64() & 0x7fffffffffffffffL;
-                if(bits >= threshold)
-                    return bits % maxValue;
+                ulong a = (ulong)Rand.Next64();
+                ulong a_lo = a & 0xFFFFFFFFUL;
+                ulong a_hi = a >> 32;
+                ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
+                ulong b_hi = (ulong)maxValue >> 32;
+
+                ulong a_x_b_hi = a_hi * b_hi;
+                ulong a_x_b_mid = a_hi * b_lo;
+                ulong b_x_a_mid = b_hi * a_lo;
+                ulong a_x_b_lo = a_lo * b_lo;
+
+                ulong carry_bit = ((a_x_b_mid & 0xFFFFFFFFUL) +
+                                   (b_x_a_mid & 0xFFFFFFFFUL) +
+                                   (a_x_b_lo >> 32)) >> 32;
+
+                return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
         /// <summary>
@@ -706,21 +720,33 @@ namespace CSDS.Utilities
         }
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
-        /// positive (if it is 0 or less, this simply returns 0).
+        /// positive (if it is 1 or less, this simply returns 0).
         /// </summary>
+        /// <remarks>Credit to user craigster0 from https://stackoverflow.com/a/28904636 for the code this uses, which gets the high 64 bits of a 64-by-64-bit multiplication.</remarks>
         /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
         /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
 
         public long NextLong(long maxValue)
         {
-            if(maxValue <= 0) return 0;
-            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
-            for(;;)
-            {
-                long bits = ((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] + 0xBA3779D9U >> 1))
-                    * 0x632AE59B69B3C209L - choice) & 0x7fffffffffffffffL;
-                if(bits >= threshold)
-                    return bits % maxValue;
+            if (maxValue <= 1L)
+                    return 0L;
+            unchecked {
+                ulong a = (ulong)NextLong();
+                ulong a_lo = a & 0xFFFFFFFFUL;
+                ulong a_hi = a >> 32;
+                ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
+                ulong b_hi = (ulong)maxValue >> 32;
+
+                ulong a_x_b_hi = a_hi * b_hi;
+                ulong a_x_b_mid = a_hi * b_lo;
+                ulong b_x_a_mid = b_hi * a_lo;
+                ulong a_x_b_lo = a_lo * b_lo;
+
+                ulong carry_bit = ((a_x_b_mid & 0xFFFFFFFFUL) +
+                                   (b_x_a_mid & 0xFFFFFFFFUL) +
+                                   (a_x_b_lo >> 32)) >> 32;
+
+                return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
         /// <summary>
@@ -953,26 +979,34 @@ namespace CSDS.Utilities
 
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
-        /// positive (if it is 0 or less, this simply returns 0).
+        /// positive (if it is 1 or less, this simply returns 0).
         /// </summary>
+        /// <remarks>Credit to user craigster0 from https://stackoverflow.com/a/28904636 for the code this uses, which gets the high 64 bits of a 64-by-64-bit multiplication.</remarks>
         /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
         /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
 
         public long NextLong(long maxValue)
         {
-            if(maxValue <= 0) return 0;
-            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
-            for(;;)
+            if (maxValue <= 1L)
+                return 0L;
+            unchecked
             {
-                uint y = (State += 0x9E3779B9U),//(State == 0) ? (Inc += 0x632BE5A6) : Inc),
-                    z = (State += 0x9E3779B9U);// (State == 0) ? (Inc += 0x632BE5A6) : Inc);
-                y = (y ^ (y >> 16)) * 0x85EBCA6B;
-                z = (z ^ (z >> 16)) * 0x85EBCA6B;
-                y = (y ^ (y >> 13)) * 0xC2B2AE35;
-                z = (z ^ (z >> 13)) * 0xC2B2AE35;
-                long bits = ((long)(y ^ (y >> 16)) << 32 ^ (z ^ (z >> 16))) & 0x7fffffffffffffffL;
-                if(bits >= threshold)
-                    return bits % maxValue;
+                ulong a = (ulong)NextLong();
+                ulong a_lo = a & 0xFFFFFFFFUL;
+                ulong a_hi = a >> 32;
+                ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
+                ulong b_hi = (ulong)maxValue >> 32;
+
+                ulong a_x_b_hi = a_hi * b_hi;
+                ulong a_x_b_mid = a_hi * b_lo;
+                ulong b_x_a_mid = b_hi * a_lo;
+                ulong a_x_b_lo = a_lo * b_lo;
+
+                ulong carry_bit = ((a_x_b_mid & 0xFFFFFFFFUL) +
+                                   (b_x_a_mid & 0xFFFFFFFFUL) +
+                                   (a_x_b_lo >> 32)) >> 32;
+
+                return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
         /// <summary>
@@ -1196,23 +1230,34 @@ namespace CSDS.Utilities
 
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
-        /// positive (if it is 0 or less, this simply returns 0).
+        /// positive (if it is 1 or less, this simply returns 0).
         /// </summary>
+        /// <remarks>Credit to user craigster0 from https://stackoverflow.com/a/28904636 for the code this uses, which gets the high 64 bits of a 64-by-64-bit multiplication.</remarks>
         /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
         /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
 
         public long NextLong(long maxValue)
         {
-            if(maxValue <= 0) return 0;
-            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
-            for(;;)
+            if (maxValue <= 1L)
+                return 0L;
+            unchecked
             {
-                uint x = State + 0x7F4A7C15U, y = (State += 0xFE94F82AU);
-                x = (x ^ x >> 14) * (0x41C64E6DU + (x & 0x7FFEU));
-                y = (y ^ y >> 14) * (0x41C64E6DU + (y & 0x7FFEU));
-                long bits = ((long)(x ^ x >> 13) << 32 ^ (y ^ y >> 13)) & 0x7fffffffffffffffL;
-                if(bits >= threshold)
-                    return bits % maxValue;
+                ulong a = (ulong)NextLong();
+                ulong a_lo = a & 0xFFFFFFFFUL;
+                ulong a_hi = a >> 32;
+                ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
+                ulong b_hi = (ulong)maxValue >> 32;
+
+                ulong a_x_b_hi = a_hi * b_hi;
+                ulong a_x_b_mid = a_hi * b_lo;
+                ulong b_x_a_mid = b_hi * a_lo;
+                ulong a_x_b_lo = a_lo * b_lo;
+
+                ulong carry_bit = ((a_x_b_mid & 0xFFFFFFFFUL) +
+                                   (b_x_a_mid & 0xFFFFFFFFUL) +
+                                   (a_x_b_lo >> 32)) >> 32;
+
+                return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
         /// <summary>
@@ -1400,21 +1445,34 @@ namespace CSDS.Utilities
         }
         /// <summary>
         /// Gets a pseudo-random int that is between 0 (inclusive) and maxValue (exclusive); maxValue must be
-        /// positive (if it is 0 or less, this simply returns 0).
+        /// positive (if it is 1 or less, this simply returns 0).
         /// </summary>
+        /// <remarks>Credit to user craigster0 from https://stackoverflow.com/a/28904636 for the code this uses, which gets the high 64 bits of a 64-by-64-bit multiplication.</remarks>
         /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
         /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
 
         public long NextLong(long maxValue)
         {
-            if(maxValue <= 0) return 0;
-            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
-            for(;;)
+            if (maxValue <= 1L)
+                return 0L;
+            unchecked
             {
-                long bits = ((state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B500000000L ^
-            (state[(choice += 0x9CBC276DU) & 15] += (state[choice >> 28] >> 13) + 0x5F356495) * 0x2C9277B5) & 0x7fffffffffffffffL;
-                if(bits >= threshold)
-                    return bits % maxValue;
+                ulong a = (ulong)NextLong();
+                ulong a_lo = a & 0xFFFFFFFFUL;
+                ulong a_hi = a >> 32;
+                ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
+                ulong b_hi = (ulong)maxValue >> 32;
+
+                ulong a_x_b_hi = a_hi * b_hi;
+                ulong a_x_b_mid = a_hi * b_lo;
+                ulong b_x_a_mid = b_hi * a_lo;
+                ulong a_x_b_lo = a_lo * b_lo;
+
+                ulong carry_bit = ((a_x_b_mid & 0xFFFFFFFFUL) +
+                                   (b_x_a_mid & 0xFFFFFFFFUL) +
+                                   (a_x_b_lo >> 32)) >> 32;
+
+                return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
         /// <summary>
@@ -1673,22 +1731,34 @@ namespace CSDS.Utilities
 
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
-        /// positive (if it is 0 or less, this simply returns 0).
+        /// positive (if it is 1 or less, this simply returns 0).
         /// </summary>
+        /// <remarks>Credit to user craigster0 from https://stackoverflow.com/a/28904636 for the code this uses, which gets the high 64 bits of a 64-by-64-bit multiplication.</remarks>
         /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
         /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
 
         public long NextLong(long maxValue)
         {
-            if (maxValue <= 0) return 0;
-            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
-            for (; ; )
+            if (maxValue <= 1L)
+                return 0L;
+            unchecked
             {
-                ulong s = (State += 0x6C8E9CF570932BD5UL);
-                s = (s ^ (s >> 25)) * (s | 0xA529UL);
-                long bits = (long)(s ^ (s >> 22)) & 0x7fffffffffffffffL;
-                if (bits >= threshold)
-                    return bits % maxValue;
+                ulong a = NextULong();
+                ulong a_lo = a & 0xFFFFFFFFUL;
+                ulong a_hi = a >> 32;
+                ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
+                ulong b_hi = (ulong)maxValue >> 32;
+
+                ulong a_x_b_hi = a_hi * b_hi;
+                ulong a_x_b_mid = a_hi * b_lo;
+                ulong b_x_a_mid = b_hi * a_lo;
+                ulong a_x_b_lo = a_lo * b_lo;
+
+                ulong carry_bit = ((a_x_b_mid & 0xFFFFFFFFUL) +
+                                   (b_x_a_mid & 0xFFFFFFFFUL) +
+                                   (a_x_b_lo >> 32)) >> 32;
+
+                return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
         /// <summary>
@@ -1902,25 +1972,34 @@ namespace CSDS.Utilities
 
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
-        /// positive (if it is 0 or less, this simply returns 0).
+        /// positive (if it is 1 or less, this simply returns 0).
         /// </summary>
+        /// <remarks>Credit to user craigster0 from https://stackoverflow.com/a/28904636 for the code this uses, which gets the high 64 bits of a 64-by-64-bit multiplication.</remarks>
         /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
         /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
 
         public long NextLong(long maxValue)
         {
-            if (maxValue <= 0) return 0;
-            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
-            for (; ; )
+            if (maxValue <= 1L)
+                return 0L;
+            unchecked
             {
-                A += B;
-                B -= C;
-                C += A;
-                A ^= D++;
-                C.Rol48();
-                long bits = (long)A & 0x7fffffffffffffffL;
-                if (bits >= threshold)
-                    return bits % maxValue;
+                ulong a = NextULong();
+                ulong a_lo = a & 0xFFFFFFFFUL;
+                ulong a_hi = a >> 32;
+                ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
+                ulong b_hi = (ulong)maxValue >> 32;
+
+                ulong a_x_b_hi = a_hi * b_hi;
+                ulong a_x_b_mid = a_hi * b_lo;
+                ulong b_x_a_mid = b_hi * a_lo;
+                ulong a_x_b_lo = a_lo * b_lo;
+
+                ulong carry_bit = ((a_x_b_mid & 0xFFFFFFFFUL) +
+                                   (b_x_a_mid & 0xFFFFFFFFUL) +
+                                   (a_x_b_lo >> 32)) >> 32;
+
+                return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
         /// <summary>
@@ -2167,30 +2246,34 @@ namespace CSDS.Utilities
 
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
-        /// positive (if it is 0 or less, this simply returns 0).
+        /// positive (if it is 1 or less, this simply returns 0).
         /// </summary>
+        /// <remarks>Credit to user craigster0 from https://stackoverflow.com/a/28904636 for the code this uses, which gets the high 64 bits of a 64-by-64-bit multiplication.</remarks>
         /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
         /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
 
         public long NextLong(long maxValue)
         {
-            if (maxValue <= 0) return 0;
-            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
-            for (; ; )
+            if (maxValue <= 1L)
+                return 0L;
+            unchecked
             {
-                uint s0 = A;
-                uint s1 = B;
-                uint high = s0 + s1;
-                s1 ^= s0;
-                uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
-                s1 = (s1 << 28 | s1 >> 4);
-                uint low = s00 + s1;
-                s1 ^= s00;
-                A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
-                B = (s1 << 28 | s1 >> 4);
-                long bits = ((long)((high << 29 | high >> 3) + (C + 0x632BE5ABU)) << 32 ^ ((low << 29 | low >> 3) + (C += 0xC657CB56U))) & 0x7fffffffffffffffL;
-                if (bits >= threshold)
-                    return bits % maxValue;
+                ulong a = NextULong();
+                ulong a_lo = a & 0xFFFFFFFFUL;
+                ulong a_hi = a >> 32;
+                ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
+                ulong b_hi = (ulong)maxValue >> 32;
+
+                ulong a_x_b_hi = a_hi * b_hi;
+                ulong a_x_b_mid = a_hi * b_lo;
+                ulong b_x_a_mid = b_hi * a_lo;
+                ulong a_x_b_lo = a_lo * b_lo;
+
+                ulong carry_bit = ((a_x_b_mid & 0xFFFFFFFFUL) +
+                                   (b_x_a_mid & 0xFFFFFFFFUL) +
+                                   (a_x_b_lo >> 32)) >> 32;
+
+                return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
         /// <summary>
@@ -2419,20 +2502,34 @@ namespace CSDS.Utilities
 
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
-        /// positive (if it is 0 or less, this simply returns 0).
+        /// positive (if it is 1 or less, this simply returns 0).
         /// </summary>
+        /// <remarks>Credit to user craigster0 from https://stackoverflow.com/a/28904636 for the code this uses, which gets the high 64 bits of a 64-by-64-bit multiplication.</remarks>
         /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
         /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
 
         public long NextLong(long maxValue)
         {
-            if (maxValue <= 0) return 0;
-            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
-            for (; ; )
+            if (maxValue <= 1L)
+                return 0L;
+            unchecked
             {
-                long bits = NextLong() & 0x7fffffffffffffffL;
-                if (bits >= threshold)
-                    return bits % maxValue;
+                ulong a = NextULong();
+                ulong a_lo = a & 0xFFFFFFFFUL;
+                ulong a_hi = a >> 32;
+                ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
+                ulong b_hi = (ulong)maxValue >> 32;
+
+                ulong a_x_b_hi = a_hi * b_hi;
+                ulong a_x_b_mid = a_hi * b_lo;
+                ulong b_x_a_mid = b_hi * a_lo;
+                ulong a_x_b_lo = a_lo * b_lo;
+
+                ulong carry_bit = ((a_x_b_mid & 0xFFFFFFFFUL) +
+                                   (b_x_a_mid & 0xFFFFFFFFUL) +
+                                   (a_x_b_lo >> 32)) >> 32;
+
+                return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
         /// <summary>
@@ -2641,23 +2738,37 @@ namespace CSDS.Utilities
             return (((lo ^ lo >> 11) + (Stream ^= Stream >> 11)) ^ hi << 32);
         }
 
- 
+
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
-        /// positive (if it is 0 or less, this simply returns 0).
+        /// positive (if it is 1 or less, this simply returns 0).
         /// </summary>
+        /// <remarks>Credit to user craigster0 from https://stackoverflow.com/a/28904636 for the code this uses, which gets the high 64 bits of a 64-by-64-bit multiplication.</remarks>
         /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
         /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
 
         public long NextLong(long maxValue)
         {
-            if (maxValue <= 0) return 0;
-            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
-            for (; ; )
+            if (maxValue <= 1L)
+                return 0L;
+            unchecked
             {
-                long bits = NextLong() & 0x7fffffffffffffffL;
-                if (bits >= threshold)
-                    return bits % maxValue;
+                ulong a = NextULong();
+                ulong a_lo = a & 0xFFFFFFFFUL;
+                ulong a_hi = a >> 32;
+                ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
+                ulong b_hi = (ulong)maxValue >> 32;
+
+                ulong a_x_b_hi = a_hi * b_hi;
+                ulong a_x_b_mid = a_hi * b_lo;
+                ulong b_x_a_mid = b_hi * a_lo;
+                ulong a_x_b_lo = a_lo * b_lo;
+
+                ulong carry_bit = ((a_x_b_mid & 0xFFFFFFFFUL) +
+                                   (b_x_a_mid & 0xFFFFFFFFUL) +
+                                   (a_x_b_lo >> 32)) >> 32;
+
+                return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
         /// <summary>
@@ -2899,30 +3010,34 @@ namespace CSDS.Utilities
 
         /// <summary>
         /// Gets a random int that is between 0 (inclusive) and maxValue (exclusive), which must be
-        /// positive (if it is 0 or less, this simply returns 0).
+        /// positive (if it is 1 or less, this simply returns 0).
         /// </summary>
+        /// <remarks>Credit to user craigster0 from https://stackoverflow.com/a/28904636 for the code this uses, which gets the high 64 bits of a 64-by-64-bit multiplication.</remarks>
         /// <param name="maxValue">the exclusive upper bound, which should be 1 or greater</param>
         /// <returns>a pseudo-random long between 0 (inclusive) and maxValue (exclusive)</returns>
 
         public long NextLong(long maxValue)
         {
-            if (maxValue <= 0) return 0;
-            long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
-            for (; ; )
+            if (maxValue <= 1L)
+                return 0L;
+            unchecked
             {
-                uint s0 = A;
-                uint s1 = B;
-                uint high = s0 + s1;
-                s1 ^= s0;
-                uint s00 = (s0 << 13 | s0 >> 19) ^ s1 ^ (s1 << 5);
-                s1 = (s1 << 28 | s1 >> 4);
-                uint low = s00 + s1;
-                s1 ^= s00;
-                A = (s00 << 13 | s00 >> 19) ^ s1 ^ (s1 << 5);
-                B = (s1 << 28 | s1 >> 4);
-                long bits = ((long)((high << 10 | high >> 22) + s0) << 32 ^ ((low << 10 | low >> 22) + s00)) & 0x7fffffffffffffffL;
-                if (bits >= threshold)
-                    return bits % maxValue;
+                ulong a = NextULong();
+                ulong a_lo = a & 0xFFFFFFFFUL;
+                ulong a_hi = a >> 32;
+                ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
+                ulong b_hi = (ulong)maxValue >> 32;
+
+                ulong a_x_b_hi = a_hi * b_hi;
+                ulong a_x_b_mid = a_hi * b_lo;
+                ulong b_x_a_mid = b_hi * a_lo;
+                ulong a_x_b_lo = a_lo * b_lo;
+
+                ulong carry_bit = ((a_x_b_mid & 0xFFFFFFFFUL) +
+                                   (b_x_a_mid & 0xFFFFFFFFUL) +
+                                   (a_x_b_lo >> 32)) >> 32;
+
+                return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
         /// <summary>
