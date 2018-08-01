@@ -2532,6 +2532,18 @@ namespace CSDS.Utilities
                 return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
+        //public long NextLongOld(long maxValue)
+        //{
+        //    if (maxValue <= 1) return 0;
+        //    long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
+        //    for (; ; )
+        //    {
+        //        long bits = NextLong() & 0x7fffffffffffffffL;
+        //        if (bits >= threshold)
+        //            return bits % maxValue;
+        //    }
+        //}
+
         /// <summary>
         /// Gets a random long that is between minValue (inclusive) and maxValue (exclusive);
         /// both should be positive and minValue should be less than maxValue.
@@ -3022,9 +3034,8 @@ namespace CSDS.Utilities
                 return 0L;
             unchecked
             {
-                ulong a = NextULong();
-                ulong a_lo = a & 0xFFFFFFFFUL;
-                ulong a_hi = a >> 32;
+                ulong a_lo = NextUInt();
+                ulong a_hi = NextUInt();
                 ulong b_lo = (ulong)maxValue & 0xFFFFFFFFUL;
                 ulong b_hi = (ulong)maxValue >> 32;
 
@@ -3040,6 +3051,17 @@ namespace CSDS.Utilities
                 return (long)(a_x_b_hi + (a_x_b_mid >> 32) + (b_x_a_mid >> 32) + carry_bit);
             }
         }
+        //public long NextLongOld(long maxValue)
+        //{
+        //    if (maxValue <= 1) return 0;
+        //    long threshold = (0x7fffffffffffffffL - maxValue + 1) % maxValue;
+        //    for (; ; ) 
+        //    {
+        //        long bits = NextLong() & 0x7fffffffffffffffL;
+        //        if (bits >= threshold)
+        //            return bits % maxValue;
+        //    }
+        //}
         /// <summary>
         /// Gets a random long that is between minValue (inclusive) and maxValue (exclusive);
         /// both should be positive and minValue should be less than maxValue.

@@ -50,6 +50,41 @@ namespace CSDS_Test
         [Benchmark]
         public long TestLinnorm() => linnorm.Next();
     }
+    public class RangedRNGBenchmarks
+    {
+        private readonly LinnormPRNG linnorm = new LinnormPRNG(123456);
+        private readonly LathePRNG lathe = new LathePRNG(123456);
+
+        public RangedRNGBenchmarks()
+        {
+        }
+        [Benchmark]
+        public long TestLathe_0x7BCDEF1234567890L() => lathe.NextLong(0x7BCDEF1234567890L);
+        [Benchmark]
+        public long TestLinnorm_0x7BCDEF1234567890L() => linnorm.NextLong(0x7BCDEF1234567890L);
+        //[Benchmark]
+        //public long TestLatheOld_0x7BCDEF1234567890L() => lathe.NextLongOld(0x7BCDEF1234567890L);
+        //[Benchmark]
+        //public long TestLinnorOld_0x7BCDEF1234567890L() => linnorm.NextLongOld(0x7BCDEF1234567890L);
+
+        [Benchmark]
+        public long TestLathe_0x1000000000000000L() => lathe.NextLong(0x1000000000000000L);
+        [Benchmark]
+        public long TestLinnorm_0x1000000000000000L() => linnorm.NextLong(0x1000000000000000L);
+        //[Benchmark]
+        //public long TestLatheOld_0x1000000000000000L() => lathe.NextLongOld(0x1000000000000000L);
+        //[Benchmark]
+        //public long TestLinnorOld_0x1000000000000000L() => linnorm.NextLongOld(0x1000000000000000L);
+
+        [Benchmark]
+        public long TestLathe_0x100000000000L() => lathe.NextLong(0x100000000000L);
+        [Benchmark]
+        public long TestLinnorm_0x100000000000L() => linnorm.NextLong(0x100000000000L);
+        //[Benchmark]
+        //public long TestLatheOld_0x100000000000L() => lathe.NextLongOld(0x100000000000L);
+        //[Benchmark]
+        //public long TestLinnorOld_0x100000000000L() => linnorm.NextLongOld(0x100000000000L);
+    }
     //class LinnormRNG { public ulong state; public LinnormRNG() : this(0UL) { } public LinnormRNG(ulong seed) { state = seed; } public ulong NextULong() { ulong z = (state = state * 0x41C64E6DUL + 1UL); z = (z ^ z >> 28) * 0xAEF17502108EF2D9UL; return (z ^ z >> 30); } }
     public class OrderedCollectionBenchmarks
     {
@@ -159,6 +194,40 @@ namespace CSDS_Test
         public static void Main(string[] args)
         {
             var summary = BenchmarkRunner.Run<RNGBenchmarks>();
+        }
+    }
+    /// <summary>
+    /// The TestLathe_0x... and TestLinnorm_0x... methods test the current NextLong(long) methods.
+    /// The TestLatheOld_0x... and TestLinnormOld_0x... methods test the previous version of the NextLong(long) methods.
+    /// <code>
+    ///BenchmarkDotNet=v0.10.12, OS=Windows 7 SP1 (6.1.7601.0)
+    ///Intel Core i7-6700HQ CPU 2.60GHz(Skylake), 1 CPU, 8 logical cores and 4 physical cores
+    ///Frequency=2531279 Hz, Resolution=395.0572 ns, Timer=TSC
+    ///  [Host]     : .NET Framework 4.6.1 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.2558.0
+    ///  DefaultJob : .NET Framework 4.6.1 (CLR 4.0.30319.42000), 64bit RyuJIT-v4.7.2558.0
+    ///
+    ///
+    ///                            Method |      Mean |     Error |    StdDev |
+    ///---------------------------------- |----------:|----------:|----------:|
+    ///     TestLathe_0x7BCDEF1234567890L |  7.380 ns | 0.0537 ns | 0.0503 ns |
+    ///  TestLatheOld_0x7BCDEF1234567890L | 25.473 ns | 0.5964 ns | 0.5287 ns |
+    ///   TestLinnorm_0x7BCDEF1234567890L |  4.728 ns | 0.1309 ns | 0.1508 ns |
+    /// TestLinnorOld_0x7BCDEF1234567890L | 22.295 ns | 0.0992 ns | 0.0928 ns |
+    ///     TestLathe_0x1000000000000000L |  7.462 ns | 0.2791 ns | 0.2330 ns |
+    ///  TestLatheOld_0x1000000000000000L | 25.460 ns | 0.2131 ns | 0.1780 ns |
+    ///   TestLinnorm_0x1000000000000000L |  4.962 ns | 0.1326 ns | 0.1176 ns |
+    /// TestLinnorOld_0x1000000000000000L | 22.173 ns | 0.1255 ns | 0.1174 ns |
+    ///         TestLathe_0x100000000000L |  7.228 ns | 0.0269 ns | 0.0238 ns |
+    ///      TestLatheOld_0x100000000000L | 24.799 ns | 0.1393 ns | 0.1163 ns |
+    ///       TestLinnorm_0x100000000000L |  4.665 ns | 0.0177 ns | 0.0157 ns |
+    ///     TestLinnorOld_0x100000000000L | 22.128 ns | 0.1408 ns | 0.1317 ns |
+    /// </code>
+    /// </summary>
+    public class RangedRNGRunner
+    {
+        public static void Main(string[] args)
+        {
+            var summary = BenchmarkRunner.Run<RangedRNGBenchmarks>();
         }
     }
     public class OrderedRunner
