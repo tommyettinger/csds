@@ -14,11 +14,38 @@ namespace CSDS.Collections
     /// setting with a K index, true to add that item or false to remove it.
     /// </summary>
     /// <typeparam name="K">Any reference type</typeparam>
-    class IndexedSet<K> : ISet<K>, IList<K> where K : class
+    class IndexedSet<K> : ISet<K>, IList<K>, IEnumerable<K>, ICollection<K>, IEnumerable where K : class
     {
         private HashSet<K> Items;
         private List<K> Order;
-        public K this[int index] { get => Order[index]; set { Items.Remove(Order[index]); Items.Add(value); Order[index] = value; } }
+        public IndexedSet()
+        {
+            Items = new HashSet<K>();
+            Order = new List<K>();
+        }
+        public IndexedSet(int capacity)
+        {
+            Items = new HashSet<K>();
+            Order = new List<K>(capacity);
+        }
+        public IndexedSet(IEqualityComparer<K> comparer)
+        {
+            Items = new HashSet<K>(comparer);
+            Order = new List<K>();
+        }
+        public IndexedSet(IEnumerable<K> collection)
+        {
+            Order = new List<K>(collection.Distinct());
+            Items = new HashSet<K>(Order);
+        }
+
+        public IndexedSet(IEnumerable<K> collection, IEqualityComparer<K> comparer)
+        {
+            Order = new List<K>(collection.Distinct(comparer));
+            Items = new HashSet<K>(Order, comparer);
+        }
+
+        public K this[int index] { get => Order[index]; set { Items.Remove(Order[index]); if(Items.Add(value)) Order[index] = value; } }
         public bool this[K item] { get => Contains(item); set { if (value) Add(item); else Remove(item); } }
         public int Count => Order.Count;
 
