@@ -86,6 +86,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Collections\IndexedSet.cs" />
     <Compile Include="Collections\OrderedHashed.cs" />
     <Compile Include="Collections\OrderKeeper.cs" />
     <Compile Include="Collections\Treap.cs" />

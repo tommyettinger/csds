@@ -96,7 +96,7 @@ namespace CSDS_Test
         [Benchmark]
         public OrderedSet<int> TestOrderedSet()
         {
-            OrderedSet<int> keep = new OrderedSet<int>(count * 2);
+            OrderedSet<int> keep = new OrderedSet<int>(count);
             for (int i = 0; i < count; ++i)
             {
                 keep.Add(i);
@@ -107,7 +107,7 @@ namespace CSDS_Test
             }
             return keep;
         }
-        //[Benchmark]
+        [Benchmark]
         public OrderKeeper<int> TestOrderKeeper()
         {
             OrderKeeper<int> keep = new OrderKeeper<int>(0);
@@ -121,7 +121,7 @@ namespace CSDS_Test
             }
             return keep;
         }
-        //[Benchmark]
+        [Benchmark]
         public OrderingCollection<int> TestOrderingCollection()
         {
             OrderingCollection<int> keep = new OrderingCollection<int>();
