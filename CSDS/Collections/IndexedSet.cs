@@ -14,7 +14,7 @@ namespace CSDS.Collections
     /// setting with a K index, true to add that item or false to remove it.
     /// </summary>
     /// <typeparam name="K">Any reference type</typeparam>
-    class IndexedSet<K> : ISet<K>, IList<K>, IEnumerable<K>, ICollection<K>, IEnumerable where K : class
+    public class IndexedSet<K> : ISet<K>, IList<K>, IEnumerable<K>, ICollection<K>, IEnumerable where K : class
     {
         private HashSet<K> Items;
         private List<K> Order;

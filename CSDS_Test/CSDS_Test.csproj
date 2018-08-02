@@ -56,7 +56,7 @@
     <LangVersion>7.2</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>CSDS_Test.OrderedRunner</StartupObject>
+    <StartupObject>CSDS_Test.IndexedCollectionTests</StartupObject>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -255,10 +255,10 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="IndexedCollectionTests.cs" />
     <Compile Include="OrderedCollectionTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Benchmarks.cs" />
-    <Compile Include="RNGTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CSDS\CSDS.csproj">
