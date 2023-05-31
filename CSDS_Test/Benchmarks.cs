@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes.Jobs;
 using BenchmarkDotNet.Running;
 using CSDS.Collections;
 using CSDS.Utilities;
@@ -128,11 +129,11 @@ namespace CSDS_Test
             keep.InsertAtStart(0);
             for (int i = 1; i < count; ++i)
             {
-                keep.InsertAfter(i, i - 1);
+                keep.InsertAfter(i - 1, i);
             }
             for (int i = 0; i < count; ++i)
             {
-                keep.InsertBefore(~i, i);
+                keep.InsertBefore(i, ~i);
             }
             return keep;
         }
@@ -189,6 +190,7 @@ namespace CSDS_Test
     ///</code>
     /// Lathe seems best right now.
     /// </summary>
+    [InProcessAttribute]
     public class RNGRunner
     {
         public static void Main(string[] args)
@@ -223,6 +225,7 @@ namespace CSDS_Test
     ///     TestLinnorOld_0x100000000000L | 22.128 ns | 0.1408 ns | 0.1317 ns |
     /// </code>
     /// </summary>
+    [InProcessAttribute]
     public class RangedRNGRunner
     {
         public static void Main(string[] args)
@@ -230,6 +233,17 @@ namespace CSDS_Test
             var summary = BenchmarkRunner.Run<RangedRNGBenchmarks>();
         }
     }
+    /// <summary>
+    /// <code>
+    ///                  Method |     Mean |     Error |    StdDev |   Median |
+    /// ----------------------- |---------:|----------:|----------:|---------:|
+    ///          TestOrderedSet | 33.40 ms | 0.5243 ms | 0.4905 ms | 33.35 ms |
+    ///         TestOrderKeeper | 61.59 ms | 1.2374 ms | 3.2813 ms | 60.47 ms |
+    ///  TestOrderingCollection | 69.55 ms | 0.9333 ms | 0.8730 ms | 69.68 ms |
+    ///               TestTreap | 35.09 ms | 0.6337 ms | 0.5927 ms | 34.95 ms |
+    /// </code>
+    /// </summary>
+    [InProcessAttribute]
     public class OrderedRunner
     {
         public static void Main(string[] args)
